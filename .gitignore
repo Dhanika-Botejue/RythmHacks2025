@@ -9,10 +9,11 @@ archive
 .Python
 
 # Backend specific
-backend/__pycache__/
-backend/**/__pycache__/
-backend/*.pyc
-backend/**/*.pyc
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
 
 # Virtual environments
 .venv/
