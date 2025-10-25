@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import Mascot from "@/components/mascot"
+import Confetti from "@/components/confetti"
 import { mockSessionData } from "@/lib/mock-data"
 
 interface CompletionScreenProps {
@@ -18,6 +19,8 @@ export default function CompletionScreen({ onPlayAgain }: CompletionScreenProps)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-accent/10 flex items-center justify-center p-4">
+      {/* Confetti Animation */}
+      <Confetti show={true} duration={4000} />
       <div className="w-full max-w-4xl space-y-8">
         {/* Celebration Header */}
         <motion.div
