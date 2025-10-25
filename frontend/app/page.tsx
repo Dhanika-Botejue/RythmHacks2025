@@ -1,0 +1,55 @@
+"use client"
+
+import { useState } from "react"
+import OnboardingScreen from "@/components/onboarding-screen"
+import StorySelectionScreen from "@/components/story-selection-screen"
+import ReadingScreen from "@/components/reading-screen"
+import CompletionScreen from "@/components/completion-screen"
+import DashboardScreen from "@/components/dashboard-screen"
+
+type Screen = "onboarding" | "story-selection" | "reading" | "completion" | "dashboard"
+
+export default function Home() {
+  const [currentScreen, setCurrentScreen] = useState<Screen>("onboarding")
+  const [selectedStory, setSelectedStory] = useState<any>(null)
+  const [userAge, setUserAge] = useState<number>(7)
+  const [isDemoMode, setIsDemoMode] = useState(false)
+
+  const handleOnboardingComplete = (age: number) => {
+    setUserAge(age)
+    setCurrentScreen("story-selection")
+  }
+
+  const handleStorySelect = (story: any) => {
+    setSelectedStory(story)
+    setCurrentScreen("reading")
+  }
+
+  const handleReadingComplete = () => {
+    setCurrentScreen("completion")
+  }
+
+  const handlePlayAgain = () => {
+    setCurrentScreen("story-selection")
+  }
+
+  const handleDashboard = () => {
+    setCurrentScreen("dashboard")
+  }
+
+  return (
+    <main className="min-h-screen bg-background">
+      {currentScreen === "onboarding" && (
+        <OnboardingScreen onComplete={handleOnboardingComplete} onDashboard={handleDashboard} />
+      )}
+      {currentScreen === "story-selection" && (
+        <StorySelectionScreen userAge={userAge} onStorySelect={handleStorySelect} onDashboard={handleDashboard} />
+      )}
+      {currentScreen === "reading" && selectedStory && (
+        <ReadingScreen story={selectedStory} onComplete={handleReadingComplete} isDemoMode={isDemoMode} />
+      )}
+      {currentScreen === "completion" && <CompletionScreen onPlayAgain={handlePlayAgain} />}
+      {currentScreen === "dashboard" && <DashboardScreen onBack={() => setCurrentScreen("story-selection")} />}
+    </main>
+  )
+}
