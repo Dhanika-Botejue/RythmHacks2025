@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { BookOpen, Clock, Star } from "lucide-react"
+import { BookOpen, Clock, Star, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -11,10 +11,10 @@ import { stories } from "@/lib/mock-data"
 interface StorySelectionScreenProps {
   userAge: number
   onStorySelect: (story: any) => void
-  onDashboard: () => void
+  onBack: () => void
 }
 
-export default function StorySelectionScreen({ userAge, onStorySelect, onDashboard }: StorySelectionScreenProps) {
+export default function StorySelectionScreen({ userAge, onStorySelect, onBack }: StorySelectionScreenProps) {
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case "easy":
@@ -52,15 +52,16 @@ export default function StorySelectionScreen({ userAge, onStorySelect, onDashboa
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
+              <Button variant="ghost" size="sm" onClick={onBack}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
               <BookOpen className="w-8 h-8 text-primary" />
               <div>
                 <h1 className="text-2xl font-bold text-foreground">Choose Your Story</h1>
                 <p className="text-sm text-muted-foreground">Pick a story that looks fun to you!</p>
               </div>
             </div>
-            <Button variant="outline" onClick={onDashboard}>
-              Dashboard
-            </Button>
           </div>
         </div>
       </motion.header>

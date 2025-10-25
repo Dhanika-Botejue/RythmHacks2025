@@ -37,19 +37,32 @@ export default function Home() {
     setCurrentScreen("dashboard")
   }
 
+  const handleBackToOnboarding = () => {
+    setCurrentScreen("onboarding")
+  }
+
+  const handleBackToStorySelection = () => {
+    setCurrentScreen("story-selection")
+  }
+
   return (
     <main className="min-h-screen bg-background">
       {currentScreen === "onboarding" && (
         <OnboardingScreen onComplete={handleOnboardingComplete} onDashboard={handleDashboard} />
       )}
       {currentScreen === "story-selection" && (
-        <StorySelectionScreen userAge={userAge} onStorySelect={handleStorySelect} onDashboard={handleDashboard} />
+        <StorySelectionScreen userAge={userAge} onStorySelect={handleStorySelect} onBack={handleBackToOnboarding} />
       )}
       {currentScreen === "reading" && selectedStory && (
-        <ReadingScreen story={selectedStory} onComplete={handleReadingComplete} isDemoMode={isDemoMode} />
+        <ReadingScreen
+          story={selectedStory}
+          onComplete={handleReadingComplete}
+          onBack={handleBackToStorySelection}
+          isDemoMode={isDemoMode}
+        />
       )}
       {currentScreen === "completion" && <CompletionScreen onPlayAgain={handlePlayAgain} />}
-      {currentScreen === "dashboard" && <DashboardScreen onBack={() => setCurrentScreen("story-selection")} />}
+      {currentScreen === "dashboard" && <DashboardScreen onBack={() => setCurrentScreen("onboarding")} />}
     </main>
   )
 }
