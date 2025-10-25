@@ -1,3 +1,4 @@
-git+https://github.com/edavalosanaya/L2CS-Net.git@main
+mediapipe
 torch
 cv2
+numpy
