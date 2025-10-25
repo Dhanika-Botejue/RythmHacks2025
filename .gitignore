@@ -1,0 +1,82 @@
+.history
+archive
+
+# Python cache files
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Backend specific
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/**/*.pyc
+
+# Virtual environments
+.venv/
+venv/
+backend/venv/
+backend/.venv/
+
+# Virtual Environments
+.env
+.venv
+env/
+venv/
+
+# IDE / Editor folders
+.idea/
+.vscode/
+
+# Secrets - ALWAYS ignore local environment files
+*.env
+.env.*
+!.env.example
+
+frontend/.next
+
+frontend/node_modules/
+
+# Testing
+frontend/coverage/
+
+# Build output
+frontend/build/
+frontend/dist/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*` file with this corrected version:
+
+```gitignore
+
+# Virtual Environment folder in the backend directory
+/backend/.venv/
+/backend/venv/
+/backend/.env
+
+# Byte-compiled / optimized / DLL files
+/backend/__pycache__/
+*.py[cod]
+
+# Dependencies in the frontend directory
+/frontend/node_modules/
+
+# Build output from the frontend directory
+/frontend/build/
+/frontend/dist/
+/model/aux_data/World_EEZ_v12_20231025
+/model/aux_data/ETOPO_2022_v1_15s_N60W030_bed.tif
+# IDE / Editor folders
+.idea/
+.vscode/
+
+# Secrets - These should always be ignored, wherever they are
+*.env
+.env.*
+!.env.example
+
+# OS-generated files
+.DS_Store
