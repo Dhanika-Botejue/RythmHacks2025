@@ -83,7 +83,7 @@ export const stories = [
   },
   {
     id: 5,
-    title: "The Friendship Festival",
+    title: "The Fun Friendship Festival",
     level: 4,
     difficulty: "challenge",
     wordCount: 280,
