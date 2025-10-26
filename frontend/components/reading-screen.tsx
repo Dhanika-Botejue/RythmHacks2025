@@ -663,8 +663,8 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
       </motion.header>
 
       {/* Main Reading Area */}
-      <div className={`flex-1 flex items-center justify-center ${story.id === 1 ? 'px-12 py-2' : 'p-4'}`}>
-        <div className={`w-full space-y-8 ${story.id === 1 ? 'max-w-none' : 'max-w-4xl'}`}>
+      <div className={`flex-1 flex items-center justify-center ${story.id === 1 || story.id === 3 ? 'px-12 py-2' : 'p-4'}`}>
+        <div className={`w-full space-y-8 ${story.id === 1 || story.id === 3 ? 'max-w-none' : 'max-w-4xl'}`}>
           <motion.div
             key={`page-${currentSentenceIndex}`}
             initial={{ opacity: 0 }}
@@ -687,9 +687,9 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
             exit={{ opacity: 0, y: -20 }}
             className="text-center"
           >
-            {/* Picture Book Layout for The Red Cat */}
-            {story.id === 1 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 items-stretch w-full">
+            {/* Picture Book Layout for The Red Cat and Magic Garden */}
+            {story.id === 1 || story.id === 3 ? (
+              <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 items-stretch w-full min-h-[400px]">
                 {/* Image Section - Takes 2/7 of space on desktop for better visibility */}
                 <motion.div 
                   className="order-2 lg:order-1 lg:col-span-2"
@@ -699,14 +699,26 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
                 >
                   <Card className="border-2 border-primary/20 shadow-lg overflow-hidden h-full">
                     <CardContent className="p-0 h-full flex items-center">
-                      <div className="w-full bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center min-h-[300px] lg:min-h-full">
+                      <div className={`w-full flex items-center justify-center min-h-[300px] lg:min-h-full ${
+                        story.id === 1 
+                          ? 'bg-gradient-to-br from-orange-50 to-red-50' 
+                          : 'bg-gradient-to-br from-green-50 to-emerald-50'
+                      }`}>
                         <img
-                          src={`/cat-image/cat${Math.min(currentSentenceIndex + 1, 8)}.png?v=${Date.now()}`}
-                          alt={`Cat story illustration ${currentSentenceIndex + 1}`}
+                          src={story.id === 1 
+                            ? `/cat-image/cat${Math.min(currentSentenceIndex + 1, 8)}.png`
+                            : `/image-garden/garden${Math.min(currentSentenceIndex + 1, 10)}.png`
+                          }
+                          alt={story.id === 1 
+                            ? `Cat story illustration ${currentSentenceIndex + 1}`
+                            : `Garden story illustration ${currentSentenceIndex + 1}`
+                          }
                           className="max-w-full max-h-full object-contain p-0.5"
                           onError={(e) => {
-                            // Fallback to cat1.png if specific image doesn't exist
-                            (e.target as HTMLImageElement).src = `/cat-image/cat1.png?v=${Date.now()}`
+                            // Fallback to first image if specific image doesn't exist
+                            (e.target as HTMLImageElement).src = story.id === 1 
+                              ? `/cat-image/cat1.png`
+                              : `/image-garden/garden1.png`
                           }}
                         />
                       </div>
@@ -722,7 +734,7 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
                   transition={{ delay: 0.3 }}
                 >
                   <Card className="border-2 border-primary/20 shadow-lg h-full">
-                    <CardContent className="p-2 md:p-3 lg:p-4 h-full flex items-center">
+                    <CardContent className="p-2 md:p-3 lg:p-4 h-full flex items-center min-h-[400px]">
                       <p className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-medium text-foreground reading-text leading-tight tracking-normal w-full">
                         {currentSentence.split(" ").map((word: string, index: number) => (
                           <span key={index}>
@@ -742,9 +754,9 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
               </div>
             ) : (
               /* Regular Layout for Other Stories */
-              <Card className="border-2 border-primary/20 shadow-lg">
-                <CardContent className="p-8 md:p-12">
-                  <p className="text-2xl md:text-4xl font-medium text-foreground reading-text leading-relaxed">
+              <Card className="border-2 border-primary/20 shadow-lg min-h-[300px]">
+                <CardContent className="p-8 md:p-12 min-h-[300px] flex items-center">
+                  <p className="text-2xl md:text-4xl font-medium text-foreground reading-text leading-relaxed w-full">
                     {currentSentence.split(" ").map((word: string, index: number) => (
                       <span key={index}>
                         <span
