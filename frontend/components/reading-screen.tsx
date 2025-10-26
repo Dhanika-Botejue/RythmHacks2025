@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Lightbulb, ThumbsUp, Sparkles, ArrowRight, ArrowLeft, Volume2, X, BookOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -30,6 +30,25 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
   const currentSentence = story.content[currentSentenceIndex]
   const progress = ((currentSentenceIndex + 1) / story.content.length) * 100
 
+  const handlePreviousSentence = useCallback(() => {
+    if (currentSentenceIndex > 0) {
+      setShowIntervention(false)
+      setCurrentSentenceIndex((prev) => prev - 1)
+    }
+  }, [currentSentenceIndex])
+
+  const handleNextSentence = useCallback(() => {
+    setShowIntervention(false)
+    const words = currentSentence.split(" ").length
+    setWordsRead((prev) => prev + words)
+
+    if (currentSentenceIndex < story.content.length - 1) {
+      setCurrentSentenceIndex((prev) => prev + 1)
+    } else {
+      onComplete()
+    }
+  }, [currentSentenceIndex, currentSentence, story.content.length, onComplete])
+
   // Simulate AI detection of reading struggles
   useEffect(() => {
     if (isDemoMode && currentSentenceIndex > 0 && currentSentenceIndex % 3 === 0) {
@@ -41,24 +60,26 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
     }
   }, [currentSentenceIndex, isDemoMode])
 
-  const handlePreviousSentence = () => {
-    if (currentSentenceIndex > 0) {
-      setShowIntervention(false)
-      setCurrentSentenceIndex((prev) => prev - 1)
-    }
-  }
+  // Handle keyboard navigation (left/right arrow keys)
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      // Don't handle keyboard events when modals are open
+      if (selectedWord || showSentenceHelp) {
+        return
+      }
 
-  const handleNextSentence = () => {
-    setShowIntervention(false)
-    const words = currentSentence.split(" ").length
-    setWordsRead((prev) => prev + words)
-
-    if (currentSentenceIndex < story.content.length - 1) {
-      setCurrentSentenceIndex((prev) => prev + 1)
-    } else {
-      onComplete()
+      if (event.key === "ArrowLeft") {
+        event.preventDefault()
+        handlePreviousSentence()
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault()
+        handleNextSentence()
+      }
     }
-  }
+
+    window.addEventListener("keydown", handleKeyPress)
+    return () => window.removeEventListener("keydown", handleKeyPress)
+  }, [handlePreviousSentence, handleNextSentence, selectedWord, showSentenceHelp])
 
   const handleHelpRequest = () => {
     setShowSentenceHelp(true)
