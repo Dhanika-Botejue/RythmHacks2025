@@ -73,7 +73,7 @@ export default function CompletionScreen({ onPlayAgain, sessionData }: Completio
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold text-primary">{wordsRead} words in</p>
+              <p className="text-4xl font-bold text-primary">{wordsRead} words </p>
             </CardContent>
           </Card>
           
@@ -85,7 +85,7 @@ export default function CompletionScreen({ onPlayAgain, sessionData }: Completio
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold text-accent">{readingTime} with</p>
+              <p className="text-4xl font-bold text-accent">{readingTime} </p>
             </CardContent>
           </Card>
 
