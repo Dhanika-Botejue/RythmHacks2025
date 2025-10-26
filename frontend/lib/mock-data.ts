@@ -140,4 +140,11 @@ export const mockSessionData = {
   accuracy: 94,
   struggledWords: ["together", "through", "beautiful", "magnificent"],
   confidenceScore: 87,
+  topGazedWords: [
+    { word: "together", time: 15, definition: "With each other" },
+    { word: "beautiful", time: 12, definition: "Very pretty or nice to look at" },
+    { word: "magnificent", time: 10, definition: "Very grand and beautiful" },
+    { word: "garden", time: 8, definition: "A place where plants and flowers grow" },
+    { word: "wonderful", time: 6, definition: "Very nice or amazing" }
+  ]
 }

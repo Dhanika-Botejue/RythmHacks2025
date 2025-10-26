@@ -14,7 +14,7 @@ interface ReadingSessionData {
   wordsRead: number
   struggledWords: string[]
   readingTime: string
-  topGazedWords: Array<{ word: string; time: number }>
+  topGazedWords: Array<{ word: string; time: number; definition: string }>
 }
 
 interface CompletionScreenProps {
@@ -144,18 +144,23 @@ export default function CompletionScreen({ onPlayAgain, sessionData }: Completio
                 </p>
                 <div className="space-y-3">
                   {topGazedWords.map((item, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border border-primary/20">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary">
-                          {index + 1}
+                    <div key={index} className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary">
+                            {index + 1}
+                          </div>
+                          <span className="text-lg font-medium text-foreground">{item.word}</span>
                         </div>
-                        <span className="text-lg font-medium text-foreground">{item.word}</span>
+                        <div className="text-right">
+                          <div className="text-sm text-muted-foreground">Time spent</div>
+                          <div className="text-lg font-bold text-primary">
+                            {item.time}s
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-sm text-muted-foreground">Time spent</div>
-                        <div className="text-lg font-bold text-primary">
-                          {(item.time / 1000).toFixed(1)}s
-                        </div>
+                      <div className="text-sm text-muted-foreground italic">
+                        "{item.definition}"
                       </div>
                     </div>
                   ))}

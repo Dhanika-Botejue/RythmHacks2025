@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Lightbulb, ThumbsUp, Sparkles, ArrowRight, ArrowLeft, Volume2, X, BookOpen, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -17,7 +17,7 @@ interface ReadingSessionData {
   wordsRead: number
   struggledWords: string[]
   readingTime: string
-  topGazedWords: Array<{ word: string; time: number }>
+  topGazedWords: Array<{ word: string; time: number; definition: string }>
 }
 
 interface ReadingScreenProps {
@@ -38,10 +38,25 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
   const [showSentenceHelp, setShowSentenceHelp] = useState(false)
   const [startTime, setStartTime] = useState<Date>(new Date())
   const [showCameraFeed, setShowCameraFeed] = useState(false)
-  const [wordPositions, setWordPositions] = useState<Array<{ word: string; x: number; y: number; width: number; height: number }>>([])
+  const [showQuiz, setShowQuiz] = useState(false)
+  const [quizData, setQuizData] = useState<{ correctWord: string; definition: string; options: string[] } | null>(null)
+  const [selectedQuizAnswer, setSelectedQuizAnswer] = useState<string>("")
+  const [quizSubmitted, setQuizSubmitted] = useState(false)
+  const [finalSessionData, setFinalSessionData] = useState<ReadingSessionData | null>(null)
+  const [wordPositions, setWordPositions] = useState<Array<{ word: string; cleanWord: string; x: number; y: number; width: number; height: number }>>([])
   const [wordGazeTime, setWordGazeTime] = useState<Map<string, number>>(new Map())
   const [currentGazedWord, setCurrentGazedWord] = useState<string | null>(null)
   const [lastGazeUpdate, setLastGazeUpdate] = useState<number>(Date.now())
+  const [continuousGazeStart, setContinuousGazeStart] = useState<{word: string, startTime: number} | null>(null)
+  
+  // Use refs to track latest values without causing re-renders
+  const currentGazedWordRef = useRef<string | null>(null)
+  const lastGazeUpdateRef = useRef<number>(Date.now())
+  const isCompletingRef = useRef<boolean>(false)
+  const autoDisplayedWordsRef = useRef<Set<string>>(new Set())
+  const lastPopupTimeRef = useRef<number>(0)
+  const continuousGazeStartRef = useRef<{word: string, startTime: number} | null>(null)
+  const previouslyDisplayedWordRef = useRef<string | null>(null)
   
   // Gaze tracking
   const { isTracking, gazeData, error, startTracking, stopTracking } = useGazeTracking()
@@ -49,19 +64,57 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
   const currentSentence = story.content[currentSentenceIndex]
   const progress = ((currentSentenceIndex + 1) / story.content.length) * 100
   
-  // Get top 5 most gazed words
-  const getTopGazedWords = useCallback(() => {
-    const wordArray = Array.from(wordGazeTime.entries())
-      .map(([word, time]) => ({ word, time }))
+  // Helper function to split text into words without punctuation
+  const getWordsFromText = useCallback((text: string): string[] => {
+    return text.split(" ")
+      .map(word => word.replace(/[^a-zA-Z0-9]/g, "")) // Remove punctuation
+      .filter(word => word.length > 0) // Filter out empty strings
+  }, [])
+
+  // Get top 5 most gazed words - needs to access current wordGazeTime
+  const getTopGazedWords = () => {
+    // First, capture current gazed word time before getting the list
+    if (currentGazedWordRef.current) {
+      const now = Date.now()
+      const timeDelta = now - lastGazeUpdateRef.current
+      if (timeDelta > 0) {
+        const newMap = new Map(wordGazeTime)
+        const currentTime = newMap.get(currentGazedWordRef.current) || 0
+        newMap.set(currentGazedWordRef.current, currentTime + timeDelta)
+        
+        const entries = Array.from(newMap.entries())
+        const wordArray = entries
+          .map(([word, time]) => ({ 
+            word, 
+            time: Math.round(time / 1000), // Convert to seconds
+            definition: getWordDefinition(word)
+          }))
+          .sort((a, b) => b.time - a.time)
+          .slice(0, 5)
+        
+        console.log('Top gazed words:', wordArray)
+        return wordArray
+      }
+    }
+    
+    const entries = Array.from(wordGazeTime.entries())
+    const wordArray = entries
+      .map(([word, time]) => ({ 
+        word, 
+        time: Math.round(time / 1000), // Convert to seconds
+        definition: getWordDefinition(word)
+      }))
       .sort((a, b) => b.time - a.time)
       .slice(0, 5)
     
+    console.log('Top gazed words (no current):', wordArray)
     return wordArray
-  }, [wordGazeTime])
+  }
   
   // Calculate total words read based on completed sentences
   const wordsRead = Array.from(completedSentences).reduce((total, sentenceIndex) => {
-    return total + story.content[sentenceIndex].split(" ").length
+    const words = getWordsFromText(story.content[sentenceIndex])
+    return total + words.length
   }, 0)
 
   const handlePreviousSentence = useCallback(() => {
@@ -77,32 +130,24 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
     const newCompletedSentences = new Set([...completedSentences, currentSentenceIndex])
     setCompletedSentences(newCompletedSentences)
 
-    // Start gaze tracking when beginning to read
-    if (currentSentenceIndex === 0 && !isTracking) {
-      try {
-        await startTracking()
-        setShowCameraFeed(true)
-      } catch (err) {
-        console.warn('Failed to start gaze tracking:', err)
-      }
-    }
-
     if (currentSentenceIndex < story.content.length - 1) {
       setCurrentSentenceIndex((prev) => prev + 1)
     } else {
+      // Mark that we're completing to prevent cleanup from stopping tracking
+      isCompletingRef.current = true
+      
       // Stop gaze tracking when finishing
-      if (isTracking) {
-        try {
-          await stopTracking()
-          setShowCameraFeed(false)
-        } catch (err) {
-          console.warn('Failed to stop gaze tracking:', err)
-        }
+      try {
+        await stopTracking()
+        setShowCameraFeed(false)
+      } catch (err) {
+        console.warn('Failed to stop gaze tracking:', err)
       }
       
       // Calculate final session data
       const finalWordsRead = Array.from(newCompletedSentences).reduce((total, sentenceIndex) => {
-        return total + story.content[sentenceIndex].split(" ").length
+        const words = getWordsFromText(story.content[sentenceIndex])
+        return total + words.length
       }, 0)
       
       const endTime = new Date()
@@ -117,9 +162,31 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
         topGazedWords: getTopGazedWords()
       }
 
-      onComplete(sessionData)
+      // Store session data for later
+      setFinalSessionData(sessionData)
+      
+      // Prepare and show quiz before completing
+      const topWords = getTopGazedWords()
+      if (topWords && topWords.length > 0) {
+        const mostGazedWord = topWords[0]
+        const distractorWords = topWords.slice(1, Math.min(4, topWords.length))
+        
+        // Combine correct answer with distractors and shuffle
+        const options = [mostGazedWord.word, ...distractorWords.map(w => w.word)]
+        const shuffledOptions = options.sort(() => Math.random() - 0.5)
+        
+        setQuizData({
+          correctWord: mostGazedWord.word,
+          definition: mostGazedWord.definition,
+          options: shuffledOptions
+        })
+        setShowQuiz(true)
+      } else {
+        // No top words, skip quiz
+        onComplete(sessionData)
+      }
     }
-  }, [currentSentenceIndex, story.content.length, story.content, completedSentences, struggledWords, startTime, onComplete, isTracking, stopTracking, getTopGazedWords])
+  }, [currentSentenceIndex, story.content.length, story.content, completedSentences, struggledWords, startTime, onComplete, isTracking, stopTracking, wordGazeTime, getWordsFromText])
 
   // Simulate AI detection of reading struggles
   useEffect(() => {
@@ -153,8 +220,44 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
     return () => window.removeEventListener("keydown", handleKeyPress)
   }, [handlePreviousSentence, handleNextSentence, selectedWord, showSentenceHelp])
 
+  // Start gaze tracking as soon as the reading screen loads
+  useEffect(() => {
+    let isMounted = true
+    
+    startTracking().then(() => {
+      if (isMounted) {
+        setShowCameraFeed(true)
+      }
+    }).catch((err) => {
+      console.warn('Failed to start gaze tracking:', err)
+    })
+
+    // Stop tracking when component unmounts (e.g., user goes back)
+    return () => {
+      isMounted = false
+      
+      // Don't stop if we're completing (handled in handleNextSentence)
+      if (!isCompletingRef.current) {
+        setShowCameraFeed(false)
+        stopTracking().catch((err) => {
+          console.warn('Failed to stop gaze tracking:', err)
+        })
+      }
+    }
+  }, [startTracking, stopTracking])
+
   const handleHelpRequest = () => {
     setShowSentenceHelp(true)
+  }
+
+  const handleQuizSubmit = () => {
+    setQuizSubmitted(true)
+  }
+
+  const handleContinueAfterQuiz = () => {
+    if (finalSessionData) {
+      onComplete(finalSessionData)
+    }
   }
 
   const handleWordClick = (word: string, event: React.MouseEvent) => {
@@ -178,6 +281,19 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
     return syllables
   }
 
+  // Convert backend gaze coordinates [0, 1] to frontend coordinate system [-0.5, 0.5]
+  // Backend returns: x: [0, 1] (where 0=left side of screen, 1=right side), y: [0, 1]
+  // Frontend expects: x: [-0.5, 0.5] (left to right), y: [-0.5, 0.5] (top to bottom)
+  const convertGazeCoordinates = useCallback((gazeX: number, gazeY: number) => {
+    // Convert X: backend's [0, 1] with 0=left, 1=right to frontend's [-0.5, 0.5] with -0.5=left, 0.5=right
+    const frontendX = gazeX - 0.5
+    
+    // Convert Y: backend's [0, 1] with 0=top, 1=bottom to frontend's [-0.5, 0.5] with -0.5=top, 0.5=bottom
+    const frontendY = gazeY - 0.5
+    
+    return { x: frontendX, y: frontendY }
+  }, [])
+
   // Find the closest word to gaze position
   const findClosestWord = useCallback((gazeX: number, gazeY: number): string | null => {
     if (wordPositions.length === 0) return null
@@ -191,92 +307,204 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
         Math.pow(gazeX - wordPos.x, 2) + Math.pow(gazeY - wordPos.y, 2)
       )
       
-      // Check if gaze is within word bounds (with some tolerance)
+      // Check if gaze is within word bounds (with larger tolerance for easier detection)
       const withinBounds = 
-        Math.abs(gazeX - wordPos.x) <= wordPos.width / 2 + 0.05 && // 0.05 tolerance
-        Math.abs(gazeY - wordPos.y) <= wordPos.height / 2 + 0.05
+        Math.abs(gazeX - wordPos.x) <= wordPos.width / 2 + 0.2 && // 0.2 tolerance for easier detection
+        Math.abs(gazeY - wordPos.y) <= wordPos.height / 2 + 0.2
       
       if (withinBounds && distance < minDistance) {
         minDistance = distance
-        closestWord = wordPos.word
+        closestWord = wordPos.cleanWord
       }
     })
     
     return closestWord
   }, [wordPositions])
 
-  // Track gaze time on words
-  const trackGazeTime = useCallback((gazedWord: string | null) => {
+  // Sync refs with state
+  useEffect(() => {
+    currentGazedWordRef.current = currentGazedWord
+  }, [currentGazedWord])
+  
+  useEffect(() => {
+    lastGazeUpdateRef.current = lastGazeUpdate
+  }, [lastGazeUpdate])
+
+  useEffect(() => {
+    continuousGazeStartRef.current = continuousGazeStart
+  }, [continuousGazeStart])
+
+  // Track continuous gaze time on words and accumulate total time
+  const trackGazeTimeRef = useCallback((gazedWord: string | null) => {
     const now = Date.now()
-    const timeDelta = now - lastGazeUpdate
+    const timeDelta = now - lastGazeUpdateRef.current
     
-    if (currentGazedWord && timeDelta > 0) {
+    // If we were looking at a previous word, add the accumulated time to it
+    if (currentGazedWordRef.current && timeDelta > 0 && gazedWord !== currentGazedWordRef.current) {
       setWordGazeTime(prev => {
         const newMap = new Map(prev)
-        const currentTime = newMap.get(currentGazedWord) || 0
-        newMap.set(currentGazedWord, currentTime + timeDelta)
+        const currentTime = newMap.get(currentGazedWordRef.current!) || 0
+        newMap.set(currentGazedWordRef.current!, currentTime + timeDelta)
         return newMap
       })
     }
     
+    // Check if word changed or is null (switching words)
+    if (gazedWord !== currentGazedWordRef.current) {
+      // Reset continuous gaze tracking
+      setContinuousGazeStart(gazedWord ? { word: gazedWord, startTime: now } : null)
+    }
+    
     setCurrentGazedWord(gazedWord)
     setLastGazeUpdate(now)
-  }, [currentGazedWord, lastGazeUpdate])
+  }, [])
 
-  // Calculate word positions in gaze coordinate system (0,0 is center, -0.5,-0.5 is top-left)
+  // Auto-open word definition after 4 seconds of continuous gaze
+  useEffect(() => {
+    const checkForLongGaze = () => {
+      // Check if no word is selected and user is actively gazing at a word
+      const now = Date.now()
+      
+      if (!selectedWord && continuousGazeStart) {
+        const continuousGazeDuration = (now - continuousGazeStart.startTime) / 1000 // Convert to seconds
+        
+          // Check if word has been gazed at continuously for 3+ seconds
+          if (continuousGazeDuration >= 3 && !autoDisplayedWordsRef.current.has(continuousGazeStart.word)) {
+            const originalWord = wordPositions.find(wp => wp.cleanWord === continuousGazeStart.word)?.word || continuousGazeStart.word
+            autoDisplayedWordsRef.current.add(continuousGazeStart.word)
+            setSelectedWord(originalWord)
+            setWordPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+            
+            // Reset continuous gaze tracking after showing popup
+            setContinuousGazeStart(null)
+          }
+      }
+    }
+
+    // Check every 100ms for instant response
+    const interval = setInterval(checkForLongGaze, 100)
+    
+    return () => clearInterval(interval)
+  }, [continuousGazeStart, wordPositions, selectedWord])
+
+  // Reset auto-displayed words and continuous gaze when moving to a new sentence
+  useEffect(() => {
+    autoDisplayedWordsRef.current.clear()
+    setContinuousGazeStart(null) // Reset continuous gaze tracking when changing pages
+  }, [currentSentenceIndex])
+
+  // Reset continuous gaze when any popup shows up (user clicked word or auto-popup)
+  useEffect(() => {
+    if (selectedWord) {
+      setContinuousGazeStart(null) // Reset the timer when popup appears
+      // Track which word was displayed
+      const cleanSelectedWord = selectedWord.replace(/[^a-zA-Z0-9]/g, "")
+      previouslyDisplayedWordRef.current = cleanSelectedWord
+    } else {
+      // When popup closes, remove the word from the auto-displayed set
+      // so it can be shown again if the user gazes at it for 4 seconds again
+      if (previouslyDisplayedWordRef.current) {
+        autoDisplayedWordsRef.current.delete(previouslyDisplayedWordRef.current)
+        previouslyDisplayedWordRef.current = null
+      }
+    }
+  }, [selectedWord])
+
+  // Calculate word positions by measuring actual DOM elements
   const calculateWordPositions = useCallback(() => {
     const textElement = document.querySelector('.reading-text')
     if (!textElement) return []
 
     const words = currentSentence.split(" ")
-    const positions: Array<{ word: string; x: number; y: number; width: number; height: number }> = []
-    
-    // Get the text container's bounds
-    const containerRect = textElement.getBoundingClientRect()
-    const containerCenterX = containerRect.left + containerRect.width / 2
-    const containerCenterY = containerRect.top + containerRect.height / 2
-    
-    // Get font metrics (estimated)
-    const computedStyle = window.getComputedStyle(textElement)
-    const fontSize = parseFloat(String(computedStyle.fontSize || '24'))
-    const lineHeight = parseFloat(String(computedStyle.lineHeight || fontSize * 1.5))
+    const positions: Array<{ word: string; cleanWord: string; x: number; y: number; width: number; height: number }> = []
     
     // Screen dimensions for normalization
     const screenWidth = window.innerWidth
     const screenHeight = window.innerHeight
     
+    // Get all word spans with data-word-index attributes
+    const wordSpans = textElement.querySelectorAll('span[data-word-index]')
+    
+    // If we have individual word spans, measure them directly for accuracy
+    if (wordSpans.length >= words.length) {
+      wordSpans.forEach((span) => {
+        const wordIndex = parseInt(span.getAttribute('data-word-index') || '0')
+        if (wordIndex < words.length) {
+          const rect = span.getBoundingClientRect()
+          const word = words[wordIndex]
+          
+          // Calculate center of the word
+          const pixelX = rect.left + rect.width / 2
+          const pixelY = rect.top + rect.height / 2
+          
+          // Convert to gaze coordinate system (0,0 is center, normalized to -0.5 to 0.5)
+          const gazeX = (pixelX - screenWidth / 2) / screenWidth
+          const gazeY = (pixelY - screenHeight / 2) / screenHeight
+          
+          // Remove punctuation for gaze tracking (e.g., "word," becomes "word")
+          const cleanWord = word.replace(/[^a-zA-Z0-9]/g, "")
+          
+          positions.push({
+            word,
+            cleanWord: cleanWord || word,
+            x: gazeX,
+            y: gazeY,
+            width: rect.width / screenWidth,
+            height: rect.height / screenHeight
+          })
+        }
+      })
+      return positions
+    }
+    
+    // Fallback: Estimate positions if spans aren't available
+    // This handles cases where words are rendered differently
+    const containerRect = textElement.getBoundingClientRect()
+    const fontSize = parseFloat(window.getComputedStyle(textElement).fontSize || '24')
+    
     let currentX = 0
     let currentY = 0
-    const wordsPerLineEstimate = Math.floor(containerRect.width / (fontSize * 5)) // Rough estimate
     
     words.forEach((word: string, index: number) => {
-      // Estimate word width (rough approximation)
-      const estimatedWordWidth = word.length * fontSize * 0.7
-      
-      // Check if we need to wrap to next line
-      if (currentX > 0 && currentX + estimatedWordWidth > containerRect.width) {
-        currentX = 0
-        currentY += lineHeight
+      // Estimate word width using canvas for more accuracy
+      const canvas = document.createElement('canvas')
+      const context = canvas.getContext('2d')
+      if (context) {
+        context.font = window.getComputedStyle(textElement).font || `24px serif`
+        const metrics = context.measureText(word)
+        const estimatedWordWidth = metrics.width
+        const estimatedWordHeight = fontSize
+        
+        // Check if we need to wrap to next line
+        if (currentX > 0 && currentX + estimatedWordWidth > containerRect.width) {
+          currentX = 0
+          currentY += parseFloat(window.getComputedStyle(textElement).lineHeight || String(fontSize * 1.5))
+        }
+        
+        // Calculate pixel position - center of each word
+        const pixelX = containerRect.left + currentX + estimatedWordWidth / 2
+        const pixelY = containerRect.top + currentY + estimatedWordHeight / 2
+        
+        // Convert to gaze coordinate system
+        const gazeX = (pixelX - screenWidth / 2) / screenWidth
+        const gazeY = (pixelY - screenHeight / 2) / screenHeight
+        
+        // Remove punctuation
+        const cleanWord = word.replace(/[^a-zA-Z0-9]/g, "")
+        
+        positions.push({
+          word,
+          cleanWord: cleanWord || word,
+          x: gazeX,
+          y: gazeY,
+          width: estimatedWordWidth / screenWidth,
+          height: estimatedWordHeight / screenHeight
+        })
+        
+        // Move to next word position (add space between words)
+        const spaceWidth = context.measureText(' ').width
+        currentX += estimatedWordWidth + spaceWidth
       }
-      
-      // Calculate pixel position - center of each word
-      const pixelX = containerRect.left + currentX + estimatedWordWidth / 2
-      const pixelY = containerRect.top + currentY + fontSize / 2
-      
-      // Convert to gaze coordinate system (0,0 is center, normalized to -0.5 to 0.5)
-      const gazeX = (pixelX - screenWidth / 2) / screenWidth
-      const gazeY = (pixelY - screenHeight / 2) / screenHeight
-      
-      positions.push({
-        word,
-        x: gazeX,
-        y: gazeY,
-        width: estimatedWordWidth / screenWidth,
-        height: fontSize / screenHeight
-      })
-      
-      // Move to next word position
-      currentX += estimatedWordWidth + fontSize * 0.6 // Add space
     })
     
     return positions
@@ -305,10 +533,12 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
   // Track gaze data and update word gaze time
   useEffect(() => {
     if (gazeData && isTracking && wordPositions.length > 0) {
-      const closestWord = findClosestWord(gazeData.x, gazeData.y)
-      trackGazeTime(closestWord)
+      // Convert backend gaze coordinates to frontend coordinate system
+      const convertedGaze = convertGazeCoordinates(gazeData.x, gazeData.y)
+      const closestWord = findClosestWord(convertedGaze.x, convertedGaze.y)
+      trackGazeTimeRef(closestWord)
     }
-  }, [gazeData, isTracking, wordPositions, findClosestWord, trackGazeTime])
+  }, [gazeData, isTracking, wordPositions, findClosestWord, trackGazeTimeRef, convertGazeCoordinates])
 
   const getSimpleExplanation = (sentence: string): string => {
     const lowerSentence = sentence.toLowerCase()
@@ -763,6 +993,108 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
     }
   }
 
+  // Quiz popup modal
+  if (showQuiz && quizData && finalSessionData) {
+    const isCorrect = selectedQuizAnswer === quizData.correctWord
+    
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-2xl"
+        >
+          <Card className="border-2 border-primary shadow-2xl">
+            <CardContent className="p-8">
+              <div className="text-center space-y-6">
+                <div className="flex items-center justify-center gap-2 mb-6">
+                  <Lightbulb className="w-8 h-8 text-primary" />
+                  <h2 className="text-3xl font-bold text-primary">Quick Check!</h2>
+                </div>
+                
+                {!quizSubmitted ? (
+                  <>
+                    <div className="space-y-4">
+                      <p className="text-lg text-muted-foreground">
+                        Based on your reading, do you remember which word means:
+                      </p>
+                      <div className="bg-primary/10 border-2 border-primary/20 rounded-lg p-6 my-6">
+                        <p className="text-2xl font-medium text-foreground italic">
+                          "{quizData.definition}"
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <label className="text-sm font-medium text-foreground block">
+                          Select the word that matches this definition:
+                        </label>
+                        <select
+                          value={selectedQuizAnswer}
+                          onChange={(e) => setSelectedQuizAnswer(e.target.value)}
+                          className="w-full p-3 border-2 border-border rounded-lg bg-background text-foreground text-base"
+                        >
+                          <option value="">Choose a word...</option>
+                          {quizData.options.map((option, index) => (
+                            <option key={index} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      <Button 
+                        size="lg" 
+                        className="w-full mt-6"
+                        onClick={handleQuizSubmit}
+                        disabled={!selectedQuizAnswer}
+                      >
+                        Check Answer
+                        <Sparkles className="w-5 h-5 ml-2" />
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className={`p-6 rounded-lg ${isCorrect ? 'bg-green-500/10 border-2 border-green-500' : 'bg-red-500/10 border-2 border-red-500'}`}>
+                      {isCorrect ? (
+                        <>
+                          <div className="flex items-center justify-center gap-2 mb-3">
+                            <ThumbsUp className="w-8 h-8 text-green-600" />
+                            <p className="text-2xl font-bold text-green-600">Great Job!</p>
+                          </div>
+                          <p className="text-lg text-foreground">You got it right!</p>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-center gap-2 mb-3">
+                            <X className="w-8 h-8 text-red-600" />
+                            <p className="text-2xl font-bold text-red-600">Not quite...</p>
+                          </div>
+                          <p className="text-lg text-foreground">
+                            The correct answer was: <span className="font-bold">{quizData.correctWord}</span>
+                          </p>
+                        </>
+                      )}
+                    </div>
+                    
+                    <Button 
+                      size="lg" 
+                      className="w-full mt-6"
+                      onClick={handleContinueAfterQuiz}
+                    >
+                      View My Progress
+                      <ArrowRight className="w-5 h-5 ml-2" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex flex-col relative">
       {/* Gaze tracking overlay */}
@@ -911,7 +1243,7 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
                     <CardContent className="p-2 md:p-3 lg:p-4 h-full flex items-center min-h-[400px]">
                       <p className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-medium text-foreground reading-text leading-tight tracking-normal w-full">
                         {currentSentence.split(" ").map((word: string, index: number) => (
-                          <span key={index}>
+                          <span key={index} data-word-index={index}>
                             <span
                               className="cursor-pointer hover:text-primary hover:underline decoration-4 decoration-primary/50 transition-colors inline-block py-1 px-0.5"
                               onClick={(e) => handleWordClick(word, e)}
@@ -932,7 +1264,7 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
                 <CardContent className="p-8 md:p-12 min-h-[300px] flex items-center">
                   <p className="text-2xl md:text-4xl font-medium text-foreground reading-text leading-relaxed w-full">
                     {currentSentence.split(" ").map((word: string, index: number) => (
-                      <span key={index}>
+                      <span key={index} data-word-index={index}>
                         <span
                           className="cursor-pointer hover:text-primary hover:underline decoration-2 decoration-primary/50 transition-colors"
                           onClick={(e) => handleWordClick(word, e)}
