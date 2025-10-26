@@ -43,73 +43,85 @@ interface DashboardScreenProps {
 
 // Mock data for teacher dashboard
 const classStats = {
-  totalStudents: 24,
-  activeToday: 18,
-  averageProgress: 76,
-  totalBooksRead: 342,
-  weeklyGrowth: 12,
+  totalStudents: 6,
+  activeToday: 4,
+  averageProgress: 89,
+  totalBooksRead: 137,
+  weeklyGrowth: 15,
 }
 
 const students = [
   {
     id: 1,
-    name: "Emma Johnson",
+    name: "henry",
     avatar: "/placeholder.svg?height=40&width=40",
-    age: 7,
-    booksRead: 23,
+    age: 8,
+    booksRead: 28,
     currentLevel: 3,
-    accuracy: 94,
-    lastActive: "2 hours ago",
+    accuracy: 92,
+    lastActive: "1 hour ago",
     trend: "up",
-    strugglingWords: ["through", "beautiful"],
+    strugglingWords: ["through", "beautiful", "interested"],
   },
   {
     id: 2,
-    name: "Liam Chen",
+    name: "roy",
     avatar: "/placeholder.svg?height=40&width=40",
-    age: 6,
-    booksRead: 15,
+    age: 7,
+    booksRead: 22,
     currentLevel: 2,
     accuracy: 88,
-    lastActive: "1 day ago",
+    lastActive: "3 hours ago",
     trend: "up",
-    strugglingWords: ["together", "special"],
+    strugglingWords: ["together", "special", "important"],
   },
   {
     id: 3,
-    name: "Sophia Martinez",
+    name: "aiden",
     avatar: "/placeholder.svg?height=40&width=40",
-    age: 8,
-    booksRead: 31,
+    age: 9,
+    booksRead: 35,
     currentLevel: 4,
-    accuracy: 96,
-    lastActive: "3 hours ago",
-    trend: "stable",
-    strugglingWords: ["magnificent"],
+    accuracy: 95,
+    lastActive: "30 minutes ago",
+    trend: "up",
+    strugglingWords: ["magnificent", "experience"],
   },
   {
     id: 4,
-    name: "Noah Williams",
+    name: "emma",
     avatar: "/placeholder.svg?height=40&width=40",
-    age: 7,
+    age: 8,
     booksRead: 18,
     currentLevel: 2,
-    accuracy: 82,
-    lastActive: "5 hours ago",
+    accuracy: 85,
+    lastActive: "2 days ago",
     trend: "down",
-    strugglingWords: ["breakfast", "favorite", "waiting"],
+    strugglingWords: ["breakfast", "favorite", "waiting", "certain"],
   },
   {
     id: 5,
-    name: "Olivia Brown",
+    name: "maya",
     avatar: "/placeholder.svg?height=40&width=40",
-    age: 6,
-    booksRead: 12,
+    age: 7,
+    booksRead: 15,
     currentLevel: 2,
-    accuracy: 90,
-    lastActive: "4 hours ago",
+    accuracy: 89,
+    lastActive: "5 hours ago",
+    trend: "stable",
+    strugglingWords: ["outside", "morning", "choose"],
+  },
+  {
+    id: 6,
+    name: "sam",
+    avatar: "/placeholder.svg?height=40&width=40",
+    age: 8,
+    booksRead: 19,
+    currentLevel: 2,
+    accuracy: 87,
+    lastActive: "1 day ago",
     trend: "up",
-    strugglingWords: ["outside", "morning"],
+    strugglingWords: ["thought", "decided", "remember"],
   },
 ]
 
@@ -126,30 +138,48 @@ const weeklyProgressData = [
 const recentSessions = [
   {
     id: 1,
-    student: "Emma Johnson",
+    student: "henry",
     story: "The Magic Garden",
-    duration: "12 mins",
-    wordsRead: 127,
-    accuracy: 94,
+    duration: "14 mins",
+    wordsRead: 132,
+    accuracy: 92,
     timestamp: "Today, 2:30 PM",
   },
   {
     id: 2,
-    student: "Liam Chen",
+    student: "roy",
     story: "Sam's Big Day",
-    duration: "8 mins",
-    wordsRead: 85,
+    duration: "9 mins",
+    wordsRead: 89,
     accuracy: 88,
-    timestamp: "Today, 1:15 PM",
+    timestamp: "Today, 1:45 PM",
   },
   {
     id: 3,
-    student: "Sophia Martinez",
+    student: "aiden",
     story: "The Red Cat",
-    duration: "6 mins",
-    wordsRead: 50,
-    accuracy: 98,
-    timestamp: "Today, 11:45 AM",
+    duration: "7 mins",
+    wordsRead: 65,
+    accuracy: 95,
+    timestamp: "Today, 12:30 PM",
+  },
+  {
+    id: 4,
+    student: "henry",
+    story: "Adventures in Space",
+    duration: "10 mins",
+    wordsRead: 98,
+    accuracy: 91,
+    timestamp: "Today, 11:15 AM",
+  },
+  {
+    id: 5,
+    student: "aiden",
+    story: "The Ocean Discovery",
+    duration: "12 mins",
+    wordsRead: 112,
+    accuracy: 97,
+    timestamp: "Yesterday, 3:20 PM",
   },
 ]
 
@@ -180,7 +210,7 @@ export default function DashboardScreen({ onBack }: DashboardScreenProps) {
               </Button>
               <div>
                 <h1 className="text-2xl font-bold text-foreground">Teacher Dashboard</h1>
-                <p className="text-sm text-muted-foreground">Ms. Anderson's Class - Grade 2</p>
+                <p className="text-sm text-muted-foreground">dhanika's Class</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -259,18 +289,18 @@ export default function DashboardScreen({ onBack }: DashboardScreenProps) {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Award className="w-4 h-4" />
-                Top Performer
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-lg font-bold text-foreground">Sophia M.</div>
-              <p className="text-xs text-muted-foreground mt-1">31 books, 96% accuracy</p>
-            </CardContent>
-          </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <Award className="w-4 h-4" />
+                    Top Performer
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-lg font-bold text-foreground">aiden</div>
+                  <p className="text-xs text-muted-foreground mt-1">35 books, 95% accuracy</p>
+                </CardContent>
+              </Card>
         </motion.div>
 
         {/* Main Content Tabs */}
@@ -589,7 +619,7 @@ export default function DashboardScreen({ onBack }: DashboardScreenProps) {
                     <div className="p-4 rounded-lg border-l-4 border-secondary bg-secondary/5">
                       <h4 className="font-semibold text-foreground mb-1">Check In Needed</h4>
                       <p className="text-sm text-muted-foreground">
-                        Noah Williams hasn't been active in 2 days. Consider reaching out.
+                        emma hasn't been active in 2 days. Consider reaching out.
                       </p>
                     </div>
                   </div>

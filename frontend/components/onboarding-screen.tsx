@@ -12,9 +12,10 @@ import Mascot from "@/components/mascot"
 interface OnboardingScreenProps {
   onComplete: (age: number) => void
   onDashboard: () => void
+  onLogin: () => void
 }
 
-export default function OnboardingScreen({ onComplete, onDashboard }: OnboardingScreenProps) {
+export default function OnboardingScreen({ onComplete, onDashboard, onLogin }: OnboardingScreenProps) {
   const [step, setStep] = useState<"welcome" | "age" | "calibration">("welcome")
   const [selectedAge, setSelectedAge] = useState<number>(7)
   const [calibrationProgress, setCalibrationProgress] = useState(0)
@@ -76,13 +77,24 @@ export default function OnboardingScreen({ onComplete, onDashboard }: Onboarding
                 Let's Get Started!
               </Button>
 
-              <Button
-                size="lg"
-                onClick={onDashboard}
-                className="w-full h-14 text-xl px-12 rounded-lg border bg-black text-white"
-              >
-                Teacher Dashboard
-              </Button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Button
+                  size="lg"
+                  onClick={onLogin}
+                  variant="outline"
+                  className="w-full h-14 text-xl px-12 rounded-lg border-2"
+                >
+                  Sign In / Sign Up
+                </Button>
+
+                <Button
+                  size="lg"
+                  onClick={onDashboard}
+                  className="w-full h-14 text-xl px-12 rounded-lg border bg-black text-white"
+                >
+                  Teacher Dashboard
+                </Button>
+              </div>
             </div>
           </motion.div>
         )}
