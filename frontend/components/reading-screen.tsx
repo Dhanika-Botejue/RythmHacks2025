@@ -598,8 +598,8 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
       </motion.header>
 
       {/* Main Reading Area */}
-      <div className={`flex-1 flex items-center justify-center ${story.id === 1 ? 'px-12 py-2' : 'p-4'}`}>
-        <div className={`w-full space-y-8 ${story.id === 1 ? 'max-w-none' : 'max-w-4xl'}`}>
+      <div className={`flex-1 flex items-center justify-center ${story.id === 1 || story.id === 3 ? 'px-12 py-2' : 'p-4'}`}>
+        <div className={`w-full space-y-8 ${story.id === 1 || story.id === 3 ? 'max-w-none' : 'max-w-4xl'}`}>
           <motion.div
             key={`page-${currentSentenceIndex}`}
             initial={{ opacity: 0 }}
@@ -622,9 +622,15 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
             exit={{ opacity: 0, y: -20 }}
             className="text-center"
           >
+<<<<<<< Updated upstream
             {/* Picture Book Layout for The Red Cat */}
             {story.id === 1 ? (
               <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 items-stretch w-full min-h-[400px]">
+=======
+            {/* Picture Book Layout for The Red Cat and Magic Garden */}
+            {story.id === 1 || story.id === 3 ? (
+              <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 items-stretch w-full">
+>>>>>>> Stashed changes
                 {/* Image Section - Takes 2/7 of space on desktop for better visibility */}
                 <motion.div 
                   className="order-2 lg:order-1 lg:col-span-2"
@@ -634,14 +640,26 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
                 >
                   <Card className="border-2 border-primary/20 shadow-lg overflow-hidden h-full">
                     <CardContent className="p-0 h-full flex items-center">
-                      <div className="w-full bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center min-h-[300px] lg:min-h-full">
+                      <div className={`w-full flex items-center justify-center min-h-[300px] lg:min-h-full ${
+                        story.id === 1 
+                          ? 'bg-gradient-to-br from-orange-50 to-red-50' 
+                          : 'bg-gradient-to-br from-green-50 to-emerald-50'
+                      }`}>
                         <img
-                          src={`/cat-image/cat${Math.min(currentSentenceIndex + 1, 8)}.png?v=${Date.now()}`}
-                          alt={`Cat story illustration ${currentSentenceIndex + 1}`}
+                          src={story.id === 1 
+                            ? `/cat-image/cat${Math.min(currentSentenceIndex + 1, 8)}.png`
+                            : `/image-garden/garden${Math.min(currentSentenceIndex + 1, 10)}.png`
+                          }
+                          alt={story.id === 1 
+                            ? `Cat story illustration ${currentSentenceIndex + 1}`
+                            : `Garden story illustration ${currentSentenceIndex + 1}`
+                          }
                           className="max-w-full max-h-full object-contain p-0.5"
                           onError={(e) => {
-                            // Fallback to cat1.png if specific image doesn't exist
-                            (e.target as HTMLImageElement).src = `/cat-image/cat1.png?v=${Date.now()}`
+                            // Fallback to first image if specific image doesn't exist
+                            (e.target as HTMLImageElement).src = story.id === 1 
+                              ? `/cat-image/cat1.png`
+                              : `/image-garden/garden1.png`
                           }}
                         />
                       </div>
