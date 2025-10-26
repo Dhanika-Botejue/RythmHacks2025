@@ -37,7 +37,6 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
   const [showSentenceHelp, setShowSentenceHelp] = useState(false)
   const [startTime, setStartTime] = useState<Date>(new Date())
   const [showCameraFeed, setShowCameraFeed] = useState(false)
-  const [wordPositions, setWordPositions] = useState<Array<{ word: string; x: number; y: number; width: number; height: number }>>([])
   
   // Gaze tracking
   const { isTracking, gazeData, error, startTracking, stopTracking } = useGazeTracking()
@@ -162,85 +161,6 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
     const syllables = cleanWord.match(/[^aeiouy]*[aeiouy]+(?:[^aeiouy]*$|[^aeiouy](?=[^aeiouy]))?/gi) || [cleanWord]
     return syllables
   }
-
-  // Calculate word positions in gaze coordinate system (0,0 is center, -0.5,-0.5 is top-left)
-  const calculateWordPositions = useCallback(() => {
-    const textElement = document.querySelector('.reading-text')
-    if (!textElement) return []
-
-    const words = currentSentence.split(" ")
-    const positions: Array<{ word: string; x: number; y: number; width: number; height: number }> = []
-    
-    // Get the text container's bounds
-    const containerRect = textElement.getBoundingClientRect()
-    const containerCenterX = containerRect.left + containerRect.width / 2
-    const containerCenterY = containerRect.top + containerRect.height / 2
-    
-    // Get font metrics (estimated)
-    const computedStyle = window.getComputedStyle(textElement)
-    const fontSize = parseFloat(String(computedStyle.fontSize || '24'))
-    const lineHeight = parseFloat(String(computedStyle.lineHeight || fontSize * 1.5))
-    
-    // Screen dimensions for normalization
-    const screenWidth = window.innerWidth
-    const screenHeight = window.innerHeight
-    
-    let currentX = 0
-    let currentY = 0
-    const wordsPerLineEstimate = Math.floor(containerRect.width / (fontSize * 5)) // Rough estimate
-    
-    words.forEach((word: string, index: number) => {
-      // Estimate word width (rough approximation)
-      const estimatedWordWidth = word.length * fontSize * 0.7
-      
-      // Check if we need to wrap to next line
-      if (currentX > 0 && currentX + estimatedWordWidth > containerRect.width) {
-        currentX = 0
-        currentY += lineHeight
-      }
-      
-      // Calculate pixel position - center of each word
-      const pixelX = containerRect.left + currentX + estimatedWordWidth / 2
-      const pixelY = containerRect.top + currentY + fontSize / 2
-      
-      // Convert to gaze coordinate system (0,0 is center, normalized to -0.5 to 0.5)
-      const gazeX = (pixelX - screenWidth / 2) / screenWidth
-      const gazeY = (pixelY - screenHeight / 2) / screenHeight
-      
-      positions.push({
-        word,
-        x: gazeX,
-        y: gazeY,
-        width: estimatedWordWidth / screenWidth,
-        height: fontSize / screenHeight
-      })
-      
-      // Move to next word position
-      currentX += estimatedWordWidth + fontSize * 0.6 // Add space
-    })
-    
-    return positions
-  }, [currentSentence])
-
-  // Update word positions when sentence changes
-  useEffect(() => {
-    // Small delay to ensure DOM has updated
-    const timer = setTimeout(() => {
-      const positions = calculateWordPositions()
-      setWordPositions(positions)
-      
-      // Print word positions in a readable format
-      console.log('=== WORD POSITIONS FOR CURRENT PAGE ===')
-      console.log(`Sentence: "${currentSentence}"`)
-      console.log('Word positions (x, y coordinates where 0,0 is center, -0.5,-0.5 is top-left):')
-      positions.forEach((pos, index) => {
-        console.log(`${index + 1}. "${pos.word}" - x: ${pos.x.toFixed(3)}, y: ${pos.y.toFixed(3)}, width: ${pos.width.toFixed(3)}, height: ${pos.height.toFixed(3)}`)
-      })
-      console.log('========================================')
-    }, 100)
-    
-    return () => clearTimeout(timer)
-  }, [currentSentenceIndex, calculateWordPositions, currentSentence])
 
   const getSimpleExplanation = (sentence: string): string => {
     const lowerSentence = sentence.toLowerCase()
