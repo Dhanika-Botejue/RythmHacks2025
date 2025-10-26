@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Lightbulb, ThumbsUp, Sparkles, ArrowRight, ArrowLeft, Volume2, X, BookOpen, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -38,10 +38,15 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
   const [showSentenceHelp, setShowSentenceHelp] = useState(false)
   const [startTime, setStartTime] = useState<Date>(new Date())
   const [showCameraFeed, setShowCameraFeed] = useState(false)
-  const [wordPositions, setWordPositions] = useState<Array<{ word: string; x: number; y: number; width: number; height: number }>>([])
+  const [wordPositions, setWordPositions] = useState<Array<{ word: string; cleanWord: string; x: number; y: number; width: number; height: number }>>([])
   const [wordGazeTime, setWordGazeTime] = useState<Map<string, number>>(new Map())
   const [currentGazedWord, setCurrentGazedWord] = useState<string | null>(null)
   const [lastGazeUpdate, setLastGazeUpdate] = useState<number>(Date.now())
+  
+  // Use refs to track latest values without causing re-renders
+  const currentGazedWordRef = useRef<string | null>(null)
+  const lastGazeUpdateRef = useRef<number>(Date.now())
+  const isCompletingRef = useRef<boolean>(false)
   
   // Gaze tracking
   const { isTracking, gazeData, error, startTracking, stopTracking } = useGazeTracking()
@@ -49,6 +54,13 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
   const currentSentence = story.content[currentSentenceIndex]
   const progress = ((currentSentenceIndex + 1) / story.content.length) * 100
   
+  // Helper function to split text into words without punctuation
+  const getWordsFromText = useCallback((text: string): string[] => {
+    return text.split(" ")
+      .map(word => word.replace(/[^a-zA-Z0-9]/g, "")) // Remove punctuation
+      .filter(word => word.length > 0) // Filter out empty strings
+  }, [])
+
   // Get top 5 most gazed words
   const getTopGazedWords = useCallback(() => {
     const wordArray = Array.from(wordGazeTime.entries())
@@ -61,7 +73,8 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
   
   // Calculate total words read based on completed sentences
   const wordsRead = Array.from(completedSentences).reduce((total, sentenceIndex) => {
-    return total + story.content[sentenceIndex].split(" ").length
+    const words = getWordsFromText(story.content[sentenceIndex])
+    return total + words.length
   }, 0)
 
   const handlePreviousSentence = useCallback(() => {
@@ -77,19 +90,12 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
     const newCompletedSentences = new Set([...completedSentences, currentSentenceIndex])
     setCompletedSentences(newCompletedSentences)
 
-    // Start gaze tracking when beginning to read
-    if (currentSentenceIndex === 0 && !isTracking) {
-      try {
-        await startTracking()
-        setShowCameraFeed(true)
-      } catch (err) {
-        console.warn('Failed to start gaze tracking:', err)
-      }
-    }
-
     if (currentSentenceIndex < story.content.length - 1) {
       setCurrentSentenceIndex((prev) => prev + 1)
     } else {
+      // Mark that we're completing to prevent cleanup from stopping tracking
+      isCompletingRef.current = true
+      
       // Stop gaze tracking when finishing
       if (isTracking) {
         try {
@@ -102,7 +108,8 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
       
       // Calculate final session data
       const finalWordsRead = Array.from(newCompletedSentences).reduce((total, sentenceIndex) => {
-        return total + story.content[sentenceIndex].split(" ").length
+        const words = getWordsFromText(story.content[sentenceIndex])
+        return total + words.length
       }, 0)
       
       const endTime = new Date()
@@ -119,7 +126,7 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
 
       onComplete(sessionData)
     }
-  }, [currentSentenceIndex, story.content.length, story.content, completedSentences, struggledWords, startTime, onComplete, isTracking, stopTracking, getTopGazedWords])
+  }, [currentSentenceIndex, story.content.length, story.content, completedSentences, struggledWords, startTime, onComplete, isTracking, stopTracking, getTopGazedWords, getWordsFromText])
 
   // Simulate AI detection of reading struggles
   useEffect(() => {
@@ -153,6 +160,32 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
     return () => window.removeEventListener("keydown", handleKeyPress)
   }, [handlePreviousSentence, handleNextSentence, selectedWord, showSentenceHelp])
 
+  // Start gaze tracking as soon as the reading screen loads
+  useEffect(() => {
+    let isMounted = true
+    
+    startTracking().then(() => {
+      if (isMounted) {
+        setShowCameraFeed(true)
+      }
+    }).catch((err) => {
+      console.warn('Failed to start gaze tracking:', err)
+    })
+
+    // Stop tracking when component unmounts (e.g., user goes back)
+    return () => {
+      isMounted = false
+      
+      // Don't stop if we're completing (handled in handleNextSentence)
+      if (!isCompletingRef.current) {
+        setShowCameraFeed(false)
+        stopTracking().catch((err) => {
+          console.warn('Failed to stop gaze tracking:', err)
+        })
+      }
+    }
+  }, [startTracking, stopTracking])
+
   const handleHelpRequest = () => {
     setShowSentenceHelp(true)
   }
@@ -178,6 +211,19 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
     return syllables
   }
 
+  // Convert backend gaze coordinates [0, 1] to frontend coordinate system [-0.5, 0.5]
+  // Backend returns: x: [0, 1] (where 0=left side of screen, 1=right side), y: [0, 1]
+  // Frontend expects: x: [-0.5, 0.5] (left to right), y: [-0.5, 0.5] (top to bottom)
+  const convertGazeCoordinates = useCallback((gazeX: number, gazeY: number) => {
+    // Convert X: backend's [0, 1] with 0=left, 1=right to frontend's [-0.5, 0.5] with -0.5=left, 0.5=right
+    const frontendX = gazeX - 0.5
+    
+    // Convert Y: backend's [0, 1] with 0=top, 1=bottom to frontend's [-0.5, 0.5] with -0.5=top, 0.5=bottom
+    const frontendY = gazeY - 0.5
+    
+    return { x: frontendX, y: frontendY }
+  }, [])
+
   // Find the closest word to gaze position
   const findClosestWord = useCallback((gazeX: number, gazeY: number): string | null => {
     if (wordPositions.length === 0) return null
@@ -193,35 +239,45 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
       
       // Check if gaze is within word bounds (with some tolerance)
       const withinBounds = 
-        Math.abs(gazeX - wordPos.x) <= wordPos.width / 2 + 0.05 && // 0.05 tolerance
-        Math.abs(gazeY - wordPos.y) <= wordPos.height / 2 + 0.05
+        Math.abs(gazeX - wordPos.x) <= wordPos.width / 2 + 0.1 && // 0.1 tolerance
+        Math.abs(gazeY - wordPos.y) <= wordPos.height / 2 + 0.1
       
       if (withinBounds && distance < minDistance) {
         minDistance = distance
-        closestWord = wordPos.word
+        closestWord = wordPos.cleanWord
       }
     })
     
     return closestWord
   }, [wordPositions])
 
-  // Track gaze time on words
-  const trackGazeTime = useCallback((gazedWord: string | null) => {
+  // Sync refs with state
+  useEffect(() => {
+    currentGazedWordRef.current = currentGazedWord
+  }, [currentGazedWord])
+  
+  useEffect(() => {
+    lastGazeUpdateRef.current = lastGazeUpdate
+  }, [lastGazeUpdate])
+
+  // Track gaze time on words using refs to avoid re-render issues
+  const trackGazeTimeRef = useCallback((gazedWord: string | null) => {
     const now = Date.now()
-    const timeDelta = now - lastGazeUpdate
+    const timeDelta = now - lastGazeUpdateRef.current
     
-    if (currentGazedWord && timeDelta > 0) {
+    // Update word gaze time based on previous word
+    if (currentGazedWordRef.current && timeDelta > 0) {
       setWordGazeTime(prev => {
         const newMap = new Map(prev)
-        const currentTime = newMap.get(currentGazedWord) || 0
-        newMap.set(currentGazedWord, currentTime + timeDelta)
+        const currentTime = newMap.get(currentGazedWordRef.current!) || 0
+        newMap.set(currentGazedWordRef.current!, currentTime + timeDelta)
         return newMap
       })
     }
     
     setCurrentGazedWord(gazedWord)
     setLastGazeUpdate(now)
-  }, [currentGazedWord, lastGazeUpdate])
+  }, [])
 
   // Calculate word positions in gaze coordinate system (0,0 is center, -0.5,-0.5 is top-left)
   const calculateWordPositions = useCallback(() => {
@@ -229,7 +285,7 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
     if (!textElement) return []
 
     const words = currentSentence.split(" ")
-    const positions: Array<{ word: string; x: number; y: number; width: number; height: number }> = []
+    const positions: Array<{ word: string; cleanWord: string; x: number; y: number; width: number; height: number }> = []
     
     // Get the text container's bounds
     const containerRect = textElement.getBoundingClientRect()
@@ -267,8 +323,12 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
       const gazeX = (pixelX - screenWidth / 2) / screenWidth
       const gazeY = (pixelY - screenHeight / 2) / screenHeight
       
+      // Remove punctuation for gaze tracking (e.g., "word," becomes "word")
+      const cleanWord = word.replace(/[^a-zA-Z0-9]/g, "")
+      
       positions.push({
         word,
+        cleanWord: cleanWord || word, // Fallback to original word if it becomes empty
         x: gazeX,
         y: gazeY,
         width: estimatedWordWidth / screenWidth,
@@ -305,10 +365,12 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
   // Track gaze data and update word gaze time
   useEffect(() => {
     if (gazeData && isTracking && wordPositions.length > 0) {
-      const closestWord = findClosestWord(gazeData.x, gazeData.y)
-      trackGazeTime(closestWord)
+      // Convert backend gaze coordinates to frontend coordinate system
+      const convertedGaze = convertGazeCoordinates(gazeData.x, gazeData.y)
+      const closestWord = findClosestWord(convertedGaze.x, convertedGaze.y)
+      trackGazeTimeRef(closestWord)
     }
-  }, [gazeData, isTracking, wordPositions, findClosestWord, trackGazeTime])
+  }, [gazeData, isTracking, wordPositions, findClosestWord, trackGazeTimeRef, convertGazeCoordinates])
 
   const getSimpleExplanation = (sentence: string): string => {
     const lowerSentence = sentence.toLowerCase()

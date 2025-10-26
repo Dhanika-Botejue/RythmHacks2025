@@ -84,6 +84,12 @@ gazemulti = 10
 def process(frame):
     frame = crop_to_aspect_ratio(frame)
     darkest_point = get_darkest_area(frame)
+    
+    # If no darkest point found, use center of frame as fallback
+    if darkest_point is None:
+        h, w = frame.shape[:2]
+        darkest_point = (w // 2, h // 2)
+    
     gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     darkest_pixel_value = gray_frame[darkest_point[1], darkest_point[0]]
     thresholded_image_medium = apply_binary_threshold(gray_frame, darkest_pixel_value, 15)
@@ -97,6 +103,8 @@ def process(frame):
     reduced_contours = filter_contours_by_area_and_return_largest(contours, 1000, 3)
 
     final_rotated_rect = ((0, 0), (0, 0), 0)
+    h,w,_ = frame.shape
+    
     if len(reduced_contours) > 0 and len(reduced_contours[0]) > 5:
         ellipse = cv2.fitEllipse(reduced_contours[0])
         cv2.ellipse(frame, ellipse, (0, 255, 0), 2)
@@ -104,7 +112,6 @@ def process(frame):
         cv2.circle(frame, (x, y), 3, (255, 255, 0), -1)
         final_rotated_rect = ellipse
 
-        h,w,_ = frame.shape
         xratio = x/w-0.5
         yratio = y/h-0.5
 
@@ -117,4 +124,8 @@ def process(frame):
 
         frame = cv2.flip(frame,1)
         # cv2.imshow('aaa', frame)
-        return frame, xcoord, ycoord
+        return frame, 1-xcoord, ycoord
+    else:
+        # Return center point if no contours detected
+        frame = cv2.flip(frame,1)
+        return frame, 0.5, 0.5
