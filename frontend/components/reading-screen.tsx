@@ -4,11 +4,14 @@ import type React from "react"
 
 import { useState, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Lightbulb, ThumbsUp, Sparkles, ArrowRight, ArrowLeft, Volume2, X, BookOpen } from "lucide-react"
+import { Lightbulb, ThumbsUp, Sparkles, ArrowRight, ArrowLeft, Volume2, X, BookOpen, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import Mascot from "@/components/mascot"
+import GazeOverlay from "@/components/gaze-overlay"
+import CameraFeed from "@/components/camera-feed"
+import { useGazeTracking } from "@/lib/useGazeTracking"
 
 interface ReadingScreenProps {
   story: any
@@ -26,6 +29,10 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
   const [selectedWord, setSelectedWord] = useState<string | null>(null)
   const [wordPosition, setWordPosition] = useState<{ x: number; y: number } | null>(null)
   const [showSentenceHelp, setShowSentenceHelp] = useState(false)
+  const [showCameraFeed, setShowCameraFeed] = useState(false)
+  
+  // Gaze tracking
+  const { isTracking, gazeData, error, startTracking, stopTracking } = useGazeTracking()
 
   const currentSentence = story.content[currentSentenceIndex]
   const progress = ((currentSentenceIndex + 1) / story.content.length) * 100
@@ -37,17 +44,36 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
     }
   }, [currentSentenceIndex])
 
-  const handleNextSentence = useCallback(() => {
+  const handleNextSentence = useCallback(async () => {
     setShowIntervention(false)
     const words = currentSentence.split(" ").length
     setWordsRead((prev) => prev + words)
 
+    // Start gaze tracking when beginning to read
+    if (currentSentenceIndex === 0 && !isTracking) {
+      try {
+        await startTracking()
+        setShowCameraFeed(true)
+      } catch (err) {
+        console.warn('Failed to start gaze tracking:', err)
+      }
+    }
+
     if (currentSentenceIndex < story.content.length - 1) {
       setCurrentSentenceIndex((prev) => prev + 1)
     } else {
+      // Stop gaze tracking when finishing
+      if (isTracking) {
+        try {
+          await stopTracking()
+          setShowCameraFeed(false)
+        } catch (err) {
+          console.warn('Failed to stop gaze tracking:', err)
+        }
+      }
       onComplete()
     }
-  }, [currentSentenceIndex, currentSentence, story.content.length, onComplete])
+  }, [currentSentenceIndex, currentSentence, story.content.length, onComplete, isTracking, startTracking, stopTracking])
 
   // Simulate AI detection of reading struggles
   useEffect(() => {
@@ -564,7 +590,38 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex flex-col relative">
+      {/* Gaze tracking overlay */}
+      {gazeData && (
+        <GazeOverlay 
+          x={gazeData.x} 
+          y={gazeData.y} 
+          isVisible={isTracking} 
+        />
+      )}
+      
+      {/* Camera feed */}
+      <CameraFeed
+        imageData={gazeData?.image || null}
+        isVisible={showCameraFeed}
+        onToggle={() => setShowCameraFeed(!showCameraFeed)}
+      />
+      
+      {/* Gaze tracking error */}
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50"
+        >
+          <div className="bg-red-500/10 border border-red-500/20 text-red-600 px-4 py-2 rounded-lg shadow-lg">
+            <div className="flex items-center gap-2">
+              <Eye className="w-4 h-4" />
+              <span className="text-sm font-medium">Gaze Tracking Error: {error}</span>
+            </div>
+          </div>
+        </motion.div>
+      )}
       {/* Progress Header */}
       <motion.header
         initial={{ y: -20, opacity: 0 }}
@@ -582,6 +639,14 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
                 <h2 className="text-lg font-semibold text-foreground">{story.title}</h2>
               </div>
               <div className="flex items-center gap-2">
+                {/* Gaze tracking status */}
+                {isTracking && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-green-500/10 text-green-600 rounded-md border border-green-500/20">
+                    <Eye className="w-3 h-3" />
+                    <span className="text-xs font-medium">Eye Tracking</span>
+                  </div>
+                )}
+                
                 <span className="text-xs text-muted-foreground">Page</span>
                 <span className="px-3 py-1 bg-primary/10 text-primary font-bold text-lg rounded-md border border-primary/20">
                   {currentSentenceIndex + 1}
