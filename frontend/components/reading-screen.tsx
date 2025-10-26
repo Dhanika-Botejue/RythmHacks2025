@@ -35,14 +35,11 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
   const [selectedWord, setSelectedWord] = useState<string | null>(null)
   const [wordPosition, setWordPosition] = useState<{ x: number; y: number } | null>(null)
   const [showSentenceHelp, setShowSentenceHelp] = useState(false)
-<<<<<<< HEAD
   const [startTime, setStartTime] = useState<Date>(new Date())
-=======
   const [showCameraFeed, setShowCameraFeed] = useState(false)
   
   // Gaze tracking
   const { isTracking, gazeData, error, startTracking, stopTracking } = useGazeTracking()
->>>>>>> 8b03f93123c240c44eff06277add846c9714348c
 
   const currentSentence = story.content[currentSentenceIndex]
   const progress = ((currentSentenceIndex + 1) / story.content.length) * 100
@@ -78,7 +75,16 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
     if (currentSentenceIndex < story.content.length - 1) {
       setCurrentSentenceIndex((prev) => prev + 1)
     } else {
-<<<<<<< HEAD
+      // Stop gaze tracking when finishing
+      if (isTracking) {
+        try {
+          await stopTracking()
+          setShowCameraFeed(false)
+        } catch (err) {
+          console.warn('Failed to stop gaze tracking:', err)
+        }
+      }
+      
       // Calculate final session data
       const finalWordsRead = Array.from(newCompletedSentences).reduce((total, sentenceIndex) => {
         return total + story.content[sentenceIndex].split(" ").length
@@ -97,21 +103,7 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
 
       onComplete(sessionData)
     }
-  }, [currentSentenceIndex, story.content.length, story.content, completedSentences, struggledWords, startTime, onComplete])
-=======
-      // Stop gaze tracking when finishing
-      if (isTracking) {
-        try {
-          await stopTracking()
-          setShowCameraFeed(false)
-        } catch (err) {
-          console.warn('Failed to stop gaze tracking:', err)
-        }
-      }
-      onComplete()
-    }
-  }, [currentSentenceIndex, currentSentence, story.content.length, onComplete, isTracking, startTracking, stopTracking])
->>>>>>> 8b03f93123c240c44eff06277add846c9714348c
+  }, [currentSentenceIndex, story.content.length, story.content, completedSentences, struggledWords, startTime, onComplete, isTracking, stopTracking])
 
   // Simulate AI detection of reading struggles
   useEffect(() => {
