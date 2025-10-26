@@ -624,7 +624,7 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
           >
             {/* Picture Book Layout for The Red Cat */}
             {story.id === 1 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 items-stretch w-full">
+              <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 items-stretch w-full min-h-[400px]">
                 {/* Image Section - Takes 2/7 of space on desktop for better visibility */}
                 <motion.div 
                   className="order-2 lg:order-1 lg:col-span-2"
@@ -657,7 +657,7 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
                   transition={{ delay: 0.3 }}
                 >
                   <Card className="border-2 border-primary/20 shadow-lg h-full">
-                    <CardContent className="p-2 md:p-3 lg:p-4 h-full flex items-center">
+                    <CardContent className="p-2 md:p-3 lg:p-4 h-full flex items-center min-h-[400px]">
                       <p className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-medium text-foreground reading-text leading-tight tracking-normal w-full">
                         {currentSentence.split(" ").map((word: string, index: number) => (
                           <span key={index}>
@@ -677,9 +677,9 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
               </div>
             ) : (
               /* Regular Layout for Other Stories */
-              <Card className="border-2 border-primary/20 shadow-lg">
-                <CardContent className="p-8 md:p-12">
-                  <p className="text-2xl md:text-4xl font-medium text-foreground reading-text leading-relaxed">
+              <Card className="border-2 border-primary/20 shadow-lg min-h-[300px]">
+                <CardContent className="p-8 md:p-12 min-h-[300px] flex items-center">
+                  <p className="text-2xl md:text-4xl font-medium text-foreground reading-text leading-relaxed w-full">
                     {currentSentence.split(" ").map((word: string, index: number) => (
                       <span key={index}>
                         <span
