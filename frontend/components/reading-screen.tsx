@@ -697,6 +697,14 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
                       </Button>
                     </div>
 
+                    {/* Word Definition */}
+                    <div className="mb-4 p-4 bg-primary/5 rounded-lg border-2 border-primary/20">
+                      <p className="text-sm font-medium text-muted-foreground mb-2">What does it mean?</p>
+                      <p className="text-base text-foreground leading-relaxed">
+                        {getWordDefinition(selectedWord)}
+                      </p>
+                    </div>
+
                     {/* Syllable Breakdown */}
                     <div className="mb-6">
                       <p className="text-sm font-medium text-muted-foreground mb-2">Break it down:</p>
