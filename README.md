@@ -1,4 +1,4 @@
-# ReadBuddy - Eye-Detection Algorithm Reading Assistant
+# ReadBuddy
 
 An intelligent reading platform that helps children improve their reading skills through real-time gaze tracking and personalized feedback.
 
