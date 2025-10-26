@@ -217,8 +217,8 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
       </motion.header>
 
       {/* Main Reading Area */}
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-4xl space-y-8">
+      <div className={`flex-1 flex items-center justify-center ${story.id === 1 ? 'px-12 py-2' : 'p-4'}`}>
+        <div className={`w-full space-y-8 ${story.id === 1 ? 'max-w-none' : 'max-w-4xl'}`}>
           <motion.div
             key={`page-${currentSentenceIndex}`}
             initial={{ opacity: 0 }}
@@ -241,23 +241,79 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
             exit={{ opacity: 0, y: -20 }}
             className="text-center"
           >
-            <Card className="border-2 border-primary/20 shadow-lg">
-              <CardContent className="p-8 md:p-12">
-                <p className="text-2xl md:text-4xl font-medium text-foreground reading-text leading-relaxed">
-                  {currentSentence.split(" ").map((word: string, index: number) => (
-                    <span key={index}>
-                      <span
-                        className="cursor-pointer hover:text-primary hover:underline decoration-2 decoration-primary/50 transition-colors"
-                        onClick={(e) => handleWordClick(word, e)}
-                      >
-                        {word}
+            {/* Picture Book Layout for The Red Cat */}
+            {story.id === 1 ? (
+              <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 items-stretch w-full">
+                {/* Image Section - Takes 2/7 of space on desktop for better visibility */}
+                <motion.div 
+                  className="order-2 lg:order-1 lg:col-span-2"
+                  initial={{ opacity: 0, x: -50 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <Card className="border-2 border-primary/20 shadow-lg overflow-hidden h-full">
+                    <CardContent className="p-0 h-full flex items-center">
+                      <div className="w-full bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center min-h-[300px] lg:min-h-full">
+                        <img
+                          src={`/cat-image/cat${Math.min(currentSentenceIndex + 1, 8)}.png?v=${Date.now()}`}
+                          alt={`Cat story illustration ${currentSentenceIndex + 1}`}
+                          className="max-w-full max-h-full object-contain p-0.5"
+                          onError={(e) => {
+                            // Fallback to cat1.png if specific image doesn't exist
+                            (e.target as HTMLImageElement).src = `/cat-image/cat1.png?v=${Date.now()}`
+                          }}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* Text Section - Takes 5/7 of space on desktop for maximum width */}
+                <motion.div 
+                  className="order-1 lg:order-2 lg:col-span-5"
+                  initial={{ opacity: 0, x: 50 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <Card className="border-2 border-primary/20 shadow-lg h-full">
+                    <CardContent className="p-2 md:p-3 lg:p-4 h-full flex items-center">
+                      <p className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-medium text-foreground reading-text leading-tight tracking-normal w-full">
+                        {currentSentence.split(" ").map((word: string, index: number) => (
+                          <span key={index}>
+                            <span
+                              className="cursor-pointer hover:text-primary hover:underline decoration-4 decoration-primary/50 transition-colors inline-block py-1 px-0.5"
+                              onClick={(e) => handleWordClick(word, e)}
+                            >
+                              {word}
+                            </span>
+                            {index < currentSentence.split(" ").length - 1 && " "}
+                          </span>
+                        ))}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </div>
+            ) : (
+              /* Regular Layout for Other Stories */
+              <Card className="border-2 border-primary/20 shadow-lg">
+                <CardContent className="p-8 md:p-12">
+                  <p className="text-2xl md:text-4xl font-medium text-foreground reading-text leading-relaxed">
+                    {currentSentence.split(" ").map((word: string, index: number) => (
+                      <span key={index}>
+                        <span
+                          className="cursor-pointer hover:text-primary hover:underline decoration-2 decoration-primary/50 transition-colors"
+                          onClick={(e) => handleWordClick(word, e)}
+                        >
+                          {word}
+                        </span>
+                        {index < currentSentence.split(" ").length - 1 && " "}
                       </span>
-                      {index < currentSentence.split(" ").length - 1 && " "}
-                    </span>
-                  ))}
-                </p>
-              </CardContent>
-            </Card>
+                    ))}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </motion.div>
 
           <AnimatePresence>
