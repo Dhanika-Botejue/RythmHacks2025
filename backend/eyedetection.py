@@ -1,8 +1,6 @@
 import cv2
 import numpy as np
-import tkinter as tk
 import os
-from tkinter import filedialog
 
 def crop_to_aspect_ratio(image, width=640, height=480):
     current_height, current_width = image.shape[:2]
@@ -83,61 +81,40 @@ def filter_contours_by_area_and_return_largest(contours, pixel_thresh, ratio_thr
     return [largest_contour] if largest_contour is not None else []
 
 gazemulti = 10
-def process_video():
-    cap = cv2.VideoCapture(0)
+def process(frame):
+    frame = crop_to_aspect_ratio(frame)
+    darkest_point = get_darkest_area(frame)
+    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    darkest_pixel_value = gray_frame[darkest_point[1], darkest_point[0]]
+    thresholded_image_medium = apply_binary_threshold(gray_frame, darkest_pixel_value, 15)
+    thresholded_image_medium = mask_outside_square(thresholded_image_medium, darkest_point, 250)
+    
+    kernel_size = 5
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
 
-    if not cap.isOpened():
-        print("Error: Could not open video.")
-        return
+    dilated_image = cv2.dilate(thresholded_image_medium, kernel, iterations=2)
+    contours, _ = cv2.findContours(dilated_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    reduced_contours = filter_contours_by_area_and_return_largest(contours, 1000, 3)
 
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
+    final_rotated_rect = ((0, 0), (0, 0), 0)
+    if len(reduced_contours) > 0 and len(reduced_contours[0]) > 5:
+        ellipse = cv2.fitEllipse(reduced_contours[0])
+        cv2.ellipse(frame, ellipse, (0, 255, 0), 2)
+        x, y = map(int, ellipse[0])
+        cv2.circle(frame, (x, y), 3, (255, 255, 0), -1)
+        final_rotated_rect = ellipse
 
-        frame = crop_to_aspect_ratio(frame)
-        darkest_point = get_darkest_area(frame)
-        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        darkest_pixel_value = gray_frame[darkest_point[1], darkest_point[0]]
-        thresholded_image_medium = apply_binary_threshold(gray_frame, darkest_pixel_value, 15)
-        thresholded_image_medium = mask_outside_square(thresholded_image_medium, darkest_point, 250)
+        h,w,_ = frame.shape
+        xratio = x/w-0.5
+        yratio = y/h-0.5
+
+        xcoord = (xratio*gazemulti + 1/2)
+        ycoord = (yratio*gazemulti + 1/2)
+        xcoord = np.clip(xcoord,0,1)
+        ycoord = np.clip(ycoord,0,1)
         
-        kernel_size = 5
-        kernel = np.ones((kernel_size, kernel_size), np.uint8)
+        cv2.circle(frame, (int(w*xcoord), int(h*ycoord)), 10, (0,255,0), -1)
 
-        dilated_image = cv2.dilate(thresholded_image_medium, kernel, iterations=2)
-        contours, _ = cv2.findContours(dilated_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        reduced_contours = filter_contours_by_area_and_return_largest(contours, 1000, 3)
-
-        final_rotated_rect = ((0, 0), (0, 0), 0)
-        if len(reduced_contours) > 0 and len(reduced_contours[0]) > 5:
-            ellipse = cv2.fitEllipse(reduced_contours[0])
-            cv2.ellipse(frame, ellipse, (0, 255, 0), 2)
-            x, y = map(int, ellipse[0])
-            cv2.circle(frame, (x, y), 3, (255, 255, 0), -1)
-            final_rotated_rect = ellipse
-
-            h,w,_ = frame.shape
-            xratio = x/w-0.5
-            yratio = y/h-0.5
-
-            xcoord = xratio*w*gazemulti + w/2
-            ycoord = yratio*h*gazemulti + h/2
-            xcoord = np.clip(xcoord,0,w)
-            ycoord = np.clip(ycoord,0,h)
-            
-            cv2.circle(frame, (int(xcoord), int(ycoord)), 10, (0,255,0), -1)
-
-            frame = cv2.flip(frame,1)
-            cv2.imshow('aaa', frame)
-
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('q'):
-            break
-        elif key == ord(' '):
-            cv2.waitKey(0)
-
-    cap.release()
-    cv2.destroyAllWindows()
-
-process_video()
+        frame = cv2.flip(frame,1)
+        # cv2.imshow('aaa', frame)
+        return frame, xcoord, ycoord
