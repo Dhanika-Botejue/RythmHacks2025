@@ -4,7 +4,7 @@ export const stories = [
     title: "The Red Cat",
     level: 1,
     difficulty: "easy",
-    wordCount: 50,
+    wordCount: 39,
     estimatedTime: "5 mins",
     thumbnail: "/cute-red-cat-illustration-for-children.jpg",
     content: [
@@ -23,7 +23,7 @@ export const stories = [
     title: "Sam's Big Day",
     level: 2,
     difficulty: "just-right",
-    wordCount: 100,
+    wordCount: 59,
     estimatedTime: "7 mins",
     thumbnail: "/happy-child-named-sam-having-fun.jpg",
     content: [
@@ -44,7 +44,7 @@ export const stories = [
     title: "The Magic Garden",
     level: 3,
     difficulty: "challenge",
-    wordCount: 150,
+    wordCount: 73,
     estimatedTime: "10 mins",
     thumbnail: "/magical-garden-with-flowers-and-butterflies.jpg",
     content: [
@@ -65,7 +65,7 @@ export const stories = [
     title: "The Brave Little Explorer",
     level: 4,
     difficulty: "challenge",
-    wordCount: 250,
+    wordCount: 199,
     estimatedTime: "15 mins",
     thumbnail: "/girl-explorer-in-wilderness.jpg",
     content: [
@@ -86,7 +86,7 @@ export const stories = [
     title: "The Fun Friendship Festival",
     level: 4,
     difficulty: "challenge",
-    wordCount: 280,
+    wordCount: 231,
     estimatedTime: "16 mins",
     thumbnail: "/friends-at-festival.jpg",
     content: [
@@ -107,7 +107,7 @@ export const stories = [
     title: "The Mystery of the Missing Telescope",
     level: 5,
     difficulty: "challenge",
-    wordCount: 320,
+    wordCount: 303,
     estimatedTime: "18 mins",
     thumbnail: "/telescope-astronomy.jpg",
     content: [

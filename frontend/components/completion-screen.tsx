@@ -10,12 +10,22 @@ import Mascot from "@/components/mascot"
 import Confetti from "@/components/confetti"
 import { mockSessionData } from "@/lib/mock-data"
 
-interface CompletionScreenProps {
-  onPlayAgain: () => void
+interface ReadingSessionData {
+  wordsRead: number
+  struggledWords: string[]
+  readingTime: string
 }
 
-export default function CompletionScreen({ onPlayAgain }: CompletionScreenProps) {
-  const { wordsRead, newWordsLearned, readingTime, accuracy, struggledWords, confidenceScore } = mockSessionData
+interface CompletionScreenProps {
+  onPlayAgain: () => void
+  sessionData?: ReadingSessionData
+}
+
+export default function CompletionScreen({ onPlayAgain, sessionData }: CompletionScreenProps) {
+  // Use session data if provided, otherwise fallback to mock data
+  const actualData = sessionData || mockSessionData
+  const { wordsRead, struggledWords } = actualData
+  const { newWordsLearned, readingTime, accuracy, confidenceScore } = mockSessionData
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-accent/10 flex items-center justify-center p-4">

@@ -8,7 +8,7 @@ const lexend = Lexend_Deca({
 })
 
 export const metadata = {
-  title: "ReadBuddy - AI Reading Tutor",
+  title: "ReadBuddy",
   description: "Helping young readers succeed with AI-powered coaching",
     generator: 'v0.app'
 }

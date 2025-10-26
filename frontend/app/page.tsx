@@ -14,6 +14,7 @@ export default function Home() {
   const [selectedStory, setSelectedStory] = useState<any>(null)
   const [userAge, setUserAge] = useState<number>(7)
   const [isDemoMode, setIsDemoMode] = useState(false)
+  const [sessionData, setSessionData] = useState<any>(null)
 
   const handleOnboardingComplete = (age: number) => {
     setUserAge(age)
@@ -25,7 +26,8 @@ export default function Home() {
     setCurrentScreen("reading")
   }
 
-  const handleReadingComplete = () => {
+  const handleReadingComplete = (data: any) => {
+    setSessionData(data)
     setCurrentScreen("completion")
   }
 
@@ -61,7 +63,7 @@ export default function Home() {
           isDemoMode={isDemoMode}
         />
       )}
-      {currentScreen === "completion" && <CompletionScreen onPlayAgain={handlePlayAgain} />}
+      {currentScreen === "completion" && <CompletionScreen onPlayAgain={handlePlayAgain} sessionData={sessionData} />}
       {currentScreen === "dashboard" && <DashboardScreen onBack={() => setCurrentScreen("onboarding")} />}
     </main>
   )

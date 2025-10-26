@@ -10,9 +10,15 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import Mascot from "@/components/mascot"
 
+interface ReadingSessionData {
+  wordsRead: number
+  struggledWords: string[]
+  readingTime: string
+}
+
 interface ReadingScreenProps {
   story: any
-  onComplete: () => void
+  onComplete: (sessionData: ReadingSessionData) => void
   onBack: () => void
   isDemoMode?: boolean
 }
@@ -21,14 +27,20 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0)
   const [showIntervention, setShowIntervention] = useState(false)
   const [interventionType, setInterventionType] = useState<"stuck" | "encouragement" | "hint">("stuck")
-  const [wordsRead, setWordsRead] = useState(0)
+  const [completedSentences, setCompletedSentences] = useState<Set<number>>(new Set())
   const [struggledWords, setStruggledWords] = useState<string[]>([])
   const [selectedWord, setSelectedWord] = useState<string | null>(null)
   const [wordPosition, setWordPosition] = useState<{ x: number; y: number } | null>(null)
   const [showSentenceHelp, setShowSentenceHelp] = useState(false)
+  const [startTime, setStartTime] = useState<Date>(new Date())
 
   const currentSentence = story.content[currentSentenceIndex]
   const progress = ((currentSentenceIndex + 1) / story.content.length) * 100
+  
+  // Calculate total words read based on completed sentences
+  const wordsRead = Array.from(completedSentences).reduce((total, sentenceIndex) => {
+    return total + story.content[sentenceIndex].split(" ").length
+  }, 0)
 
   const handlePreviousSentence = useCallback(() => {
     if (currentSentenceIndex > 0) {
@@ -39,15 +51,32 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
 
   const handleNextSentence = useCallback(() => {
     setShowIntervention(false)
-    const words = currentSentence.split(" ").length
-    setWordsRead((prev) => prev + words)
+    // Mark current sentence as completed
+    const newCompletedSentences = new Set([...completedSentences, currentSentenceIndex])
+    setCompletedSentences(newCompletedSentences)
 
     if (currentSentenceIndex < story.content.length - 1) {
       setCurrentSentenceIndex((prev) => prev + 1)
     } else {
-      onComplete()
+      // Calculate final session data
+      const finalWordsRead = Array.from(newCompletedSentences).reduce((total, sentenceIndex) => {
+        return total + story.content[sentenceIndex].split(" ").length
+      }, 0)
+      
+      const endTime = new Date()
+      const readingDurationMs = endTime.getTime() - startTime.getTime()
+      const readingMinutes = Math.round(readingDurationMs / (1000 * 60))
+      const readingTime = readingMinutes > 0 ? `${readingMinutes} min${readingMinutes === 1 ? '' : 's'}` : "< 1 min"
+
+      const sessionData: ReadingSessionData = {
+        wordsRead: finalWordsRead,
+        struggledWords: struggledWords,
+        readingTime: readingTime
+      }
+
+      onComplete(sessionData)
     }
-  }, [currentSentenceIndex, currentSentence, story.content.length, onComplete])
+  }, [currentSentenceIndex, story.content.length, story.content, completedSentences, struggledWords, startTime, onComplete])
 
   // Simulate AI detection of reading struggles
   useEffect(() => {
