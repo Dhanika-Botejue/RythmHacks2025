@@ -23,6 +23,7 @@ running = False
 
 @app.get("initializegaze"):
 async def initgaze():
+    global running
     running = not running
 
     if (running):
