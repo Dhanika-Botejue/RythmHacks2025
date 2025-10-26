@@ -49,7 +49,7 @@ export default function CompletionScreen({ onPlayAgain, sessionData }: Completio
               transition={{ delay: 0.3, type: "spring" }}
               className="flex justify-center"
             >
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-secondary to-primary flex items-center justify-center shadow-lg">
+              <div className="w-24 h-24 rounded-full bg-black from-secondary to-primary flex items-center justify-center shadow-lg">
                 <Trophy className="w-12 h-12 text-white" />
               </div>
             </motion.div>
@@ -73,7 +73,7 @@ export default function CompletionScreen({ onPlayAgain, sessionData }: Completio
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold text-primary">{wordsRead} words in</p>
+              <p className="text-4xl font-bold text-primary">{wordsRead} words </p>
             </CardContent>
           </Card>
           
@@ -85,7 +85,7 @@ export default function CompletionScreen({ onPlayAgain, sessionData }: Completio
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold text-accent">{readingTime} with</p>
+              <p className="text-4xl font-bold text-accent">{readingTime} </p>
             </CardContent>
           </Card>
 

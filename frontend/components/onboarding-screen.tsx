@@ -41,7 +41,7 @@ export default function OnboardingScreen({ onComplete, onDashboard }: Onboarding
                 Welcome to <span className="text-primary">ReadBuddy</span>
               </h1>
               <p className="text-lg text-muted-foreground text-pretty max-w-xl mx-auto">
-                Your friendly AI reading tutor that helps you become a confident reader. Reading has never been this exciting!
+                Your friendly reading assistant that helps you become a confident reader. Reading has never been this exciting!
               </p>
             </div>
 
@@ -67,11 +67,20 @@ export default function OnboardingScreen({ onComplete, onDashboard }: Onboarding
               </Card>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" onClick={() => setStep("age")} className="text-lg px-8">
+            <div className="flex flex-col gap-4 w-full max-w-3xl mx-auto">
+              <Button
+                size="lg"
+                onClick={() => setStep("age")}
+                className="w-full h-14 text-xl px-12 rounded-lg"
+              >
                 Let's Get Started!
               </Button>
-              <Button size="lg" variant="outline" onClick={onDashboard} className="text-lg px-8 bg-transparent">
+
+              <Button
+                size="lg"
+                onClick={onDashboard}
+                className="w-full h-14 text-xl px-12 rounded-lg border bg-black text-white"
+              >
                 Teacher Dashboard
               </Button>
             </div>
