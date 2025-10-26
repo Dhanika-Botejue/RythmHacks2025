@@ -24,8 +24,8 @@ interface CompletionScreenProps {
 export default function CompletionScreen({ onPlayAgain, sessionData }: CompletionScreenProps) {
   // Use session data if provided, otherwise fallback to mock data
   const actualData = sessionData || mockSessionData
-  const { wordsRead, struggledWords } = actualData
-  const { newWordsLearned, readingTime, accuracy, confidenceScore } = mockSessionData
+  const { wordsRead, struggledWords, readingTime } = actualData
+  const { newWordsLearned, accuracy, confidenceScore } = mockSessionData
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-accent/10 flex items-center justify-center p-4">
