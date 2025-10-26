@@ -17,6 +17,7 @@ interface ReadingSessionData {
   wordsRead: number
   struggledWords: string[]
   readingTime: string
+  topGazedWords: Array<{ word: string; time: number }>
 }
 
 interface ReadingScreenProps {
@@ -38,12 +39,25 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
   const [startTime, setStartTime] = useState<Date>(new Date())
   const [showCameraFeed, setShowCameraFeed] = useState(false)
   const [wordPositions, setWordPositions] = useState<Array<{ word: string; x: number; y: number; width: number; height: number }>>([])
+  const [wordGazeTime, setWordGazeTime] = useState<Map<string, number>>(new Map())
+  const [currentGazedWord, setCurrentGazedWord] = useState<string | null>(null)
+  const [lastGazeUpdate, setLastGazeUpdate] = useState<number>(Date.now())
   
   // Gaze tracking
   const { isTracking, gazeData, error, startTracking, stopTracking } = useGazeTracking()
 
   const currentSentence = story.content[currentSentenceIndex]
   const progress = ((currentSentenceIndex + 1) / story.content.length) * 100
+  
+  // Get top 5 most gazed words
+  const getTopGazedWords = useCallback(() => {
+    const wordArray = Array.from(wordGazeTime.entries())
+      .map(([word, time]) => ({ word, time }))
+      .sort((a, b) => b.time - a.time)
+      .slice(0, 5)
+    
+    return wordArray
+  }, [wordGazeTime])
   
   // Calculate total words read based on completed sentences
   const wordsRead = Array.from(completedSentences).reduce((total, sentenceIndex) => {
@@ -99,12 +113,13 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
       const sessionData: ReadingSessionData = {
         wordsRead: finalWordsRead,
         struggledWords: struggledWords,
-        readingTime: readingTime
+        readingTime: readingTime,
+        topGazedWords: getTopGazedWords()
       }
 
       onComplete(sessionData)
     }
-  }, [currentSentenceIndex, story.content.length, story.content, completedSentences, struggledWords, startTime, onComplete, isTracking, stopTracking])
+  }, [currentSentenceIndex, story.content.length, story.content, completedSentences, struggledWords, startTime, onComplete, isTracking, stopTracking, getTopGazedWords])
 
   // Simulate AI detection of reading struggles
   useEffect(() => {
@@ -162,6 +177,51 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
     const syllables = cleanWord.match(/[^aeiouy]*[aeiouy]+(?:[^aeiouy]*$|[^aeiouy](?=[^aeiouy]))?/gi) || [cleanWord]
     return syllables
   }
+
+  // Find the closest word to gaze position
+  const findClosestWord = useCallback((gazeX: number, gazeY: number): string | null => {
+    if (wordPositions.length === 0) return null
+    
+    let closestWord = null
+    let minDistance = Infinity
+    
+    wordPositions.forEach((wordPos) => {
+      // Calculate distance from gaze to word center
+      const distance = Math.sqrt(
+        Math.pow(gazeX - wordPos.x, 2) + Math.pow(gazeY - wordPos.y, 2)
+      )
+      
+      // Check if gaze is within word bounds (with some tolerance)
+      const withinBounds = 
+        Math.abs(gazeX - wordPos.x) <= wordPos.width / 2 + 0.05 && // 0.05 tolerance
+        Math.abs(gazeY - wordPos.y) <= wordPos.height / 2 + 0.05
+      
+      if (withinBounds && distance < minDistance) {
+        minDistance = distance
+        closestWord = wordPos.word
+      }
+    })
+    
+    return closestWord
+  }, [wordPositions])
+
+  // Track gaze time on words
+  const trackGazeTime = useCallback((gazedWord: string | null) => {
+    const now = Date.now()
+    const timeDelta = now - lastGazeUpdate
+    
+    if (currentGazedWord && timeDelta > 0) {
+      setWordGazeTime(prev => {
+        const newMap = new Map(prev)
+        const currentTime = newMap.get(currentGazedWord) || 0
+        newMap.set(currentGazedWord, currentTime + timeDelta)
+        return newMap
+      })
+    }
+    
+    setCurrentGazedWord(gazedWord)
+    setLastGazeUpdate(now)
+  }, [currentGazedWord, lastGazeUpdate])
 
   // Calculate word positions in gaze coordinate system (0,0 is center, -0.5,-0.5 is top-left)
   const calculateWordPositions = useCallback(() => {
@@ -241,6 +301,14 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
     
     return () => clearTimeout(timer)
   }, [currentSentenceIndex, calculateWordPositions, currentSentence])
+
+  // Track gaze data and update word gaze time
+  useEffect(() => {
+    if (gazeData && isTracking && wordPositions.length > 0) {
+      const closestWord = findClosestWord(gazeData.x, gazeData.y)
+      trackGazeTime(closestWord)
+    }
+  }, [gazeData, isTracking, wordPositions, findClosestWord, trackGazeTime])
 
   const getSimpleExplanation = (sentence: string): string => {
     const lowerSentence = sentence.toLowerCase()
@@ -506,7 +574,6 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
       laughter: "The sound of laughing",
       filling: "Making something full",
       air: "The invisible gas around us",
-      creating: "Making something new",
       pure: "Completely, only",
       joy: "Happiness and delight",
       happiness: "Feeling of pleasure",
@@ -549,7 +616,6 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
       studying: "Learning about",
       planets: "Large objects that orbit the sun",
       galaxies: "Huge groups of stars",
-      through: "By means of",
       powerful: "Very strong",
       university: "A school for higher learning",
       arrived: "Got to a place",
@@ -587,7 +653,6 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
       planned: "Organized beforehand",
       remembered: "Thought about the past",
       working: "Doing a job or task",
-      important: "Having great significance",
       comet: "A bright object that travels through space",
       wondered2: "Was curious about",
       steal: "To take without permission",
@@ -651,7 +716,6 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
       from: "Originating at",
       he: "A male person",
       she: "A female person",
-      his: "Belonging to him",
       her: "Belonging to her",
       in: "Inside of",
       at: "Located at",
