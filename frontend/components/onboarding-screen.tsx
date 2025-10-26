@@ -24,19 +24,8 @@ export default function OnboardingScreen({ onComplete, onDashboard }: Onboarding
   }
 
   const handleStartCalibration = () => {
-    setStep("calibration")
-    // Simulate calibration progress
-    let progress = 0
-    const interval = setInterval(() => {
-      progress += 10
-      setCalibrationProgress(progress)
-      if (progress >= 100) {
-        clearInterval(interval)
-        setTimeout(() => {
-          onComplete(selectedAge)
-        }, 500)
-      }
-    }, 300)
+    // Skip calibration step and go directly to completion
+    onComplete(selectedAge)
   }
 
   return (
