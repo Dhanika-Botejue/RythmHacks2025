@@ -2,3 +2,4 @@ mediapipe
 torch
 cv2
 numpy
+pupil-detectors
