@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Trophy, Star, BookOpen, TrendingUp, Sparkles, RotateCcw } from "lucide-react"
+import { Trophy, Star, BookOpen, TrendingUp, Sparkles, RotateCcw, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -14,6 +14,7 @@ interface ReadingSessionData {
   wordsRead: number
   struggledWords: string[]
   readingTime: string
+  topGazedWords: Array<{ word: string; time: number }>
 }
 
 interface CompletionScreenProps {
@@ -24,7 +25,7 @@ interface CompletionScreenProps {
 export default function CompletionScreen({ onPlayAgain, sessionData }: CompletionScreenProps) {
   // Use session data if provided, otherwise fallback to mock data
   const actualData = sessionData || mockSessionData
-  const { wordsRead, struggledWords, readingTime } = actualData
+  const { wordsRead, struggledWords, readingTime, topGazedWords } = actualData
   const { newWordsLearned, accuracy, confidenceScore } = mockSessionData
 
   return (
@@ -127,11 +128,48 @@ export default function CompletionScreen({ onPlayAgain, sessionData }: Completio
           </motion.div>
         )}
 
+        {/* Top Gazed Words */}
+        {topGazedWords && topGazedWords.length > 0 && (
+          <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.7 }}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Eye className="w-5 h-5 text-primary" />
+                  Words You Spent Most Time On
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  These are the words you looked at the longest during your reading session!
+                </p>
+                <div className="space-y-3">
+                  {topGazedWords.map((item, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border border-primary/20">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary">
+                          {index + 1}
+                        </div>
+                        <span className="text-lg font-medium text-foreground">{item.word}</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm text-muted-foreground">Time spent</div>
+                        <div className="text-lg font-bold text-primary">
+                          {(item.time / 1000).toFixed(1)}s
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
         {/* Action Buttons */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.7 }}
+          transition={{ delay: 0.8 }}
           className="flex justify-center"
         >
           <Button size="lg" onClick={onPlayAgain} className="text-lg px-8">
@@ -144,7 +182,7 @@ export default function CompletionScreen({ onPlayAgain, sessionData }: Completio
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
+          transition={{ delay: 0.9 }}
           className="text-center"
         >
           <Card className="border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
