@@ -622,15 +622,9 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
             exit={{ opacity: 0, y: -20 }}
             className="text-center"
           >
-<<<<<<< Updated upstream
-            {/* Picture Book Layout for The Red Cat */}
-            {story.id === 1 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 items-stretch w-full min-h-[400px]">
-=======
             {/* Picture Book Layout for The Red Cat and Magic Garden */}
             {story.id === 1 || story.id === 3 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 items-stretch w-full">
->>>>>>> Stashed changes
+              <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 items-stretch w-full min-h-[400px]">
                 {/* Image Section - Takes 2/7 of space on desktop for better visibility */}
                 <motion.div 
                   className="order-2 lg:order-1 lg:col-span-2"
