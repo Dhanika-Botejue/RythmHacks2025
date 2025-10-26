@@ -42,11 +42,15 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
   const [wordGazeTime, setWordGazeTime] = useState<Map<string, number>>(new Map())
   const [currentGazedWord, setCurrentGazedWord] = useState<string | null>(null)
   const [lastGazeUpdate, setLastGazeUpdate] = useState<number>(Date.now())
+  const [continuousGazeStart, setContinuousGazeStart] = useState<{word: string, startTime: number} | null>(null)
   
   // Use refs to track latest values without causing re-renders
   const currentGazedWordRef = useRef<string | null>(null)
   const lastGazeUpdateRef = useRef<number>(Date.now())
   const isCompletingRef = useRef<boolean>(false)
+  const autoDisplayedWordsRef = useRef<Set<string>>(new Set())
+  const lastPopupTimeRef = useRef<number>(0)
+  const continuousGazeStartRef = useRef<{word: string, startTime: number} | null>(null)
   
   // Gaze tracking
   const { isTracking, gazeData, error, startTracking, stopTracking } = useGazeTracking()
@@ -260,24 +264,64 @@ export default function ReadingScreen({ story, onComplete, onBack, isDemoMode = 
     lastGazeUpdateRef.current = lastGazeUpdate
   }, [lastGazeUpdate])
 
-  // Track gaze time on words using refs to avoid re-render issues
+  useEffect(() => {
+    continuousGazeStartRef.current = continuousGazeStart
+  }, [continuousGazeStart])
+
+  // Track continuous gaze time on words
   const trackGazeTimeRef = useCallback((gazedWord: string | null) => {
     const now = Date.now()
-    const timeDelta = now - lastGazeUpdateRef.current
     
-    // Update word gaze time based on previous word
-    if (currentGazedWordRef.current && timeDelta > 0) {
-      setWordGazeTime(prev => {
-        const newMap = new Map(prev)
-        const currentTime = newMap.get(currentGazedWordRef.current!) || 0
-        newMap.set(currentGazedWordRef.current!, currentTime + timeDelta)
-        return newMap
-      })
+    // Check if word changed or is null (switching words)
+    if (gazedWord !== currentGazedWordRef.current) {
+      // Reset continuous gaze tracking
+      setContinuousGazeStart(gazedWord ? { word: gazedWord, startTime: now } : null)
     }
     
     setCurrentGazedWord(gazedWord)
     setLastGazeUpdate(now)
   }, [])
+
+  // Auto-open word definition after 4 seconds of continuous gaze
+  useEffect(() => {
+    const checkForLongGaze = () => {
+      // Check if no word is selected and user is actively gazing at a word
+      const now = Date.now()
+      
+      if (!selectedWord && continuousGazeStart) {
+        const continuousGazeDuration = (now - continuousGazeStart.startTime) / 1000 // Convert to seconds
+        
+          // Check if word has been gazed at continuously for 4+ seconds
+          if (continuousGazeDuration >= 4 && !autoDisplayedWordsRef.current.has(continuousGazeStart.word)) {
+            const originalWord = wordPositions.find(wp => wp.cleanWord === continuousGazeStart.word)?.word || continuousGazeStart.word
+            autoDisplayedWordsRef.current.add(continuousGazeStart.word)
+            setSelectedWord(originalWord)
+            setWordPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+            
+            // Reset continuous gaze tracking after showing popup
+            setContinuousGazeStart(null)
+          }
+      }
+    }
+
+    // Check every 100ms for instant response
+    const interval = setInterval(checkForLongGaze, 100)
+    
+    return () => clearInterval(interval)
+  }, [continuousGazeStart, wordPositions, selectedWord])
+
+  // Reset auto-displayed words and continuous gaze when moving to a new sentence
+  useEffect(() => {
+    autoDisplayedWordsRef.current.clear()
+    setContinuousGazeStart(null) // Reset continuous gaze tracking when changing pages
+  }, [currentSentenceIndex])
+
+  // Reset continuous gaze when any popup shows up (user clicked word or auto-popup)
+  useEffect(() => {
+    if (selectedWord) {
+      setContinuousGazeStart(null) // Reset the timer when popup appears
+    }
+  }, [selectedWord])
 
   // Calculate word positions in gaze coordinate system (0,0 is center, -0.5,-0.5 is top-left)
   const calculateWordPositions = useCallback(() => {

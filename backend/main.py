@@ -50,18 +50,31 @@ async def gaze():
     if cap is None or not running:
         return JSONResponse({"error": "Camera not initialized"}, status_code=400)
     
-    ret, frame = cap.read()
-    if not ret:
-        return JSONResponse({"error": "Could not read frame"}, status_code=500)
+    try:
+        ret, frame = cap.read()
+        if not ret:
+            return JSONResponse({"error": "Could not read frame"}, status_code=500)
 
-    frame, x, y = eyedetection.process(frame)
-    _, buffer = cv2.imencode('.jpg', frame)
-    jpg_bytes = base64.b64encode(buffer).decode('utf-8')
-    return JSONResponse({
-        "image": jpg_bytes,
-        "x": x,
-        "y": y
-    })
+        if frame is None:
+            return JSONResponse({"error": "Frame is None"}, status_code=500)
+
+        frame, x, y = eyedetection.process(frame)
+        
+        if frame is None:
+            return JSONResponse({"error": "Processed frame is None"}, status_code=500)
+            
+        _, buffer = cv2.imencode('.jpg', frame)
+        jpg_bytes = base64.b64encode(buffer).decode('utf-8')
+        return JSONResponse({
+            "image": jpg_bytes,
+            "x": x,
+            "y": y
+        })
+    except Exception as e:
+        print(f"Error in gaze endpoint: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse({"error": f"Internal error: {str(e)}"}, status_code=500)
 
 
 if (__name__ == "__main__"):
