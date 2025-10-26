@@ -72,21 +72,19 @@ export default function CompletionScreen({ onPlayAgain, sessionData }: Completio
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold text-primary">{wordsRead}</p>
-              <p className="text-sm text-foreground/70 mt-1">in {readingTime}</p>
+              <p className="text-4xl font-bold text-primary">{wordsRead} words in</p>
             </CardContent>
           </Card>
-
+          
           <Card className="border-2 border-accent/30 bg-accent/10">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
                 <Star className="w-4 h-4" />
-                Accuracy
+                Time
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold text-accent">{accuracy}%</p>
-              <Progress value={accuracy} className="mt-2" />
+              <p className="text-4xl font-bold text-accent">{readingTime} with</p>
             </CardContent>
           </Card>
 
@@ -98,63 +96,7 @@ export default function CompletionScreen({ onPlayAgain, sessionData }: Completio
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold text-secondary">{newWordsLearned}</p>
-              <p className="text-sm text-foreground/70 mt-1">learned today</p>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Achievements */}
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }}>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-primary" />
-                Today's Achievements
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-3 p-4 rounded-lg bg-success/10 border border-success/20">
-                  <div className="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center shrink-0">
-                    <span className="text-2xl">🎯</span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-foreground">Great Accuracy!</p>
-                    <p className="text-sm text-muted-foreground">You read {accuracy}% of words correctly</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/10 border border-primary/20">
-                  <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                    <span className="text-2xl">📚</span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-foreground">Word Master!</p>
-                    <p className="text-sm text-muted-foreground">Learned {newWordsLearned} new words</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-4 rounded-lg bg-accent/10 border border-accent/20">
-                  <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
-                    <span className="text-2xl">⚡</span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-foreground">Speed Reader!</p>
-                    <p className="text-sm text-muted-foreground">Finished in {readingTime}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-4 rounded-lg bg-secondary/10 border border-secondary/20">
-                  <div className="w-12 h-12 rounded-full bg-secondary/20 flex items-center justify-center shrink-0">
-                    <span className="text-2xl">💪</span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-foreground">Confidence Boost!</p>
-                    <p className="text-sm text-muted-foreground">{confidenceScore}% confidence score</p>
-                  </div>
-                </div>
-              </div>
+              <p className="text-4xl font-bold text-secondary">{newWordsLearned} new words</p>
             </CardContent>
           </Card>
         </motion.div>

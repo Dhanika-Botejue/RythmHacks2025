@@ -34,45 +34,34 @@ export default function OnboardingScreen({ onComplete, onDashboard }: Onboarding
         {/* Welcome Step */}
         {step === "welcome" && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-8">
-            <Mascot mood="excited" size="lg" message="Hi! I'm ReadBuddy! Let's learn to read together!" />
+            <Mascot mood="excited" size="lg" message="Hey, I'm ReadBuddy! Let's read together!" />
 
             <div className="space-y-4">
               <h1 className="text-4xl md:text-5xl font-bold text-foreground text-balance">
                 Welcome to <span className="text-primary">ReadBuddy</span>
               </h1>
               <p className="text-lg text-muted-foreground text-pretty max-w-xl mx-auto">
-                Your friendly AI reading tutor that helps you become a confident reader through fun stories and
-                personalized coaching!
+                Your friendly AI reading tutor that helps you become a confident reader. Reading has never been this exciting!
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
               <Card className="border-2 border-primary/20">
-                <CardHeader>
+                <CardHeader className="text-center">
                   <BookOpen className="w-8 h-8 text-primary mx-auto mb-2" />
-                  <CardTitle className="text-lg">Fun Stories</CardTitle>
+                  <CardTitle className="text-lg">Fun Children Stories</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="text-center">
                   <p className="text-sm text-muted-foreground">Read exciting stories at your own pace</p>
                 </CardContent>
               </Card>
 
-              <Card className="border-2 border-accent/20">
-                <CardHeader>
-                  <Sparkles className="w-8 h-8 text-accent mx-auto mb-2" />
-                  <CardTitle className="text-lg">AI Coaching</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">Get help exactly when you need it</p>
-                </CardContent>
-              </Card>
-
               <Card className="border-2 border-secondary/20">
-                <CardHeader>
+                <CardHeader className="text-center">
                   <Users className="w-8 h-8 text-secondary mx-auto mb-2" />
-                  <CardTitle className="text-lg">Track Progress</CardTitle>
+                  <CardTitle className="text-lg">Progress Tracking</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="text-center">
                   <p className="text-sm text-muted-foreground">See how much you're improving</p>
                 </CardContent>
               </Card>
