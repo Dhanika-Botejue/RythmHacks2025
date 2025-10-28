@@ -1,4 +1,6 @@
-# ReadBuddy
+# ReadBuddy - Third Overall at RythmHacks 2025
+
+[Video Demo](https://www.youtube.com/watch?v=NVZWUJ6ncps), [Devpost](https://devpost.com/software/readbuddy-mubd37)
 
 An intelligent reading platform that helps children improve their reading skills through real-time gaze tracking and personalized feedback.
 
